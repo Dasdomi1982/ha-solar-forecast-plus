@@ -1,3 +1,4 @@
+# Part of Solar Forecast Plus (Dasdomi1982), licensed under the Apache License 2.0.
 """Self-learning efficiency factor (Open-Meteo Solar Forecast Plus).
 
 Once a day, shortly after sunset, the actual PV yield of the day is compared

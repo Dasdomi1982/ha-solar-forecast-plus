@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.2.2 (2026-10-20)
+* Lizenzpflichten: Änderungshinweis im Kopf jeder geänderten Datei, NOTICE ergänzt.
+* Quellenhinweis für die Wetterdaten (Open-Meteo.com, CC BY 4.0) im README und in der NOTICE.
+
 ## 0.2.1 (2026-10-20)
 * Übersetzungen: Beschreibung des Felds „history“ ohne geschweifte Klammern (hassfest-Fehler).
 

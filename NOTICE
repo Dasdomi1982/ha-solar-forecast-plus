@@ -1,12 +1,26 @@
 Solar Forecast Plus
+Copyright 2026 Dasdomi1982
 
 This product is a modified version of:
-  - ha-open-meteo-solar-forecast (https://github.com/rany2/ha-open-meteo-solar-forecast)
+  - ha-open-meteo-solar-forecast 0.1.33
+    (https://github.com/rany2/ha-open-meteo-solar-forecast)
     Copyright rany2 and contributors, licensed under the Apache License 2.0.
-  - open-meteo-solar-forecast (https://github.com/rany2/open-meteo-solar-forecast)
+  - open-meteo-solar-forecast 0.1.32
+    (https://github.com/rany2/open-meteo-solar-forecast)
     Copyright (c) 2021-2024 Klaas Schoute and rany2, licensed under the MIT License.
     Embedded as custom_components/open_meteo_solar_forecast/forecast_lib.
 
-Modifications (2026-10-19): tolerance for missing values in the API response,
-retained-forecast fallback after option changes, self-learning efficiency factor.
-Modified places are marked with "Plus:" in the source code.
+Modified files (each carries a notice in its header, except JSON files):
+  __init__.py, config_flow.py, const.py, coordinator.py, diagnostics.py,
+  sensor.py, services.yaml, manifest.json, strings.json,
+  translations/de.json, translations/en.json, translations/en-GB.json,
+  forecast_lib/open_meteo_solar_forecast.py, tests/test_config_flow.py
+New files: learner.py, brand/*, tests/test_plus.py, tests/test_robustness.py,
+  tests/conftest.py, pytest.ini, CHANGELOG.md, NOTICE
+Changes: tolerance for missing values in the API response, retained-forecast
+fallback after option changes, self-learning efficiency factor, own brand icon.
+See CHANGELOG.md for details.
+
+Weather data: Open-Meteo.com (https://open-meteo.com), licensed under
+CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/). The free Open-Meteo
+API may only be used for non-commercial purposes.

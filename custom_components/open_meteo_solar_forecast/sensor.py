@@ -1,3 +1,4 @@
+# Modified in 2026 by Dasdomi1982 for Solar Forecast Plus (changes marked "Plus:"; see NOTICE and CHANGELOG.md).
 """Support for the Open-Meteo Solar Forecast sensor service."""
 
 from __future__ import annotations

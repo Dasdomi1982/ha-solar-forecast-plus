@@ -1,3 +1,4 @@
+# Modified in 2026 by Dasdomi1982 for Solar Forecast Plus (changes marked "Plus:"; see NOTICE and CHANGELOG.md).
 """Regression coverage for the multi-step configuration wizard (issue #108).
 
 Run with Home Assistant and the integration's manifest requirements installed:

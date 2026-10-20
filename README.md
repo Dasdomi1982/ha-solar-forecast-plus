@@ -77,6 +77,13 @@ pip install pytest-homeassistant-custom-component suncalc pytz
 pytest
 ```
 
+## Wetterdaten
+
+Wetterdaten von [Open-Meteo.com](https://open-meteo.com/), lizenziert unter
+[CC BY 4.0](https://creativecommons.org/licenses/by/4.0/). Die kostenlose
+Open-Meteo-API darf nur nicht-kommerziell genutzt werden (z. B. private
+Hausautomation), siehe [Nutzungsbedingungen](https://open-meteo.com/en/terms).
+
 ## Lizenz
 
 Apache License 2.0 (siehe `LICENSE.md`); die eingebettete Bibliothek

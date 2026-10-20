@@ -1,3 +1,4 @@
+# Modified in 2026 by Dasdomi1982 for Solar Forecast Plus (changes marked "Plus:"; see NOTICE and CHANGELOG.md).
 update_array_location:
   fields:
     location_override:
