@@ -30,7 +30,7 @@ PV-Tagesertrag mit der Prognose **aller** Einträge der Integration verglichen.
 An klaren Tagen (Bewölkung unter der Schwelle) wird daraus der Wirkungsgrad
 gelernt und geglättet (exponentieller Mittelwert).
 
-Einrichtung: **Einstellungen → Geräte & Dienste → Open-Meteo Solar Forecast →
+Einrichtung: **Einstellungen → Geräte & Dienste → Solar Forecast Plus →
 Konfigurieren**. Nach den Anlagen-Seiten folgt die Seite *Selbstlernender
 Wirkungsgrad*. Nur in **einem** Eintrag aktivieren.
 
@@ -45,30 +45,35 @@ Wirkungsgrad*. Nur in **einem** Eintrag aktivieren.
 
 Neue Sensoren:
 
-* `sensor.open_meteo_pv_faktor` – gelernter Wirkungsgrad (Attribute: klare Tage,
+* `sensor.solar_forecast_plus_pv_faktor` – gelernter Wirkungsgrad (Attribute: klare Tage,
   eingelernt, angewendet, letzter klarer Tag, konfigurierter/aktiver Wirkungsgrad)
-* `sensor.open_meteo_ertrag_zu_prognose` – Ist/Prognose des letzten Tages
+* `sensor.solar_forecast_plus_ertrag_zu_prognose` – Ist/Prognose des letzten Tages
   (Attribute: Datum, klar, Bewölkung, Ist- und Prognose-kWh, 14-Tage-Verlauf)
-* `sensor.open_meteo_klare_tage` – Anzahl gelernter klarer Tage
+* `sensor.solar_forecast_plus_klare_tage` – Anzahl gelernter klarer Tage
 
 Dienste:
 
-* `open_meteo_solar_forecast.learning_evaluate` – Tag sofort auswerten
-* `open_meteo_solar_forecast.learning_set` – Lernstand setzen oder übernehmen
+* `solar_forecast_plus.learning_evaluate` – Tag sofort auswerten
+* `solar_forecast_plus.learning_set` – Lernstand setzen oder übernehmen
   (`factor`, `clear_days`, `last_clear_date`, `history`, `reset`)
 
-### 3. Eigenes Icon
-Ab Home Assistant 2026.3 bringt die Integration ihr eigenes Icon mit (Ordner
-`brand/`, hell und dunkel). Es ersetzt das Icon des Originals automatisch.
+### 3. Eigenständige Integration
+Plus nutzt die eigene Domain `solar_forecast_plus` und läuft deshalb **parallel**
+zur originalen Open-Meteo-Integration. Beide Prognosen lassen sich so direkt
+vergleichen. Ab Home Assistant 2026.3 bringt Plus außerdem ein eigenes Icon mit
+(Ordner `brand/`, hell und dunkel).
 
 ## Installation über HACS
 
-1. Die originale Integration in HACS entfernen (die Einträge unter *Geräte &
-   Dienste* bleiben erhalten – Plus nutzt dieselbe Domain, alle Sensoren behalten
-   ihre Namen).
-2. HACS → ⋮ → *Benutzerdefinierte Repositories* → `https://github.com/Dasdomi1982/ha-solar-forecast-plus` als
+1. HACS → ⋮ → *Benutzerdefinierte Repositories* → `https://github.com/Dasdomi1982/ha-solar-forecast-plus` als
    *Integration* hinzufügen.
-3. *Solar Forecast Plus* herunterladen und Home Assistant neu starten.
+2. *Solar Forecast Plus* herunterladen und Home Assistant neu starten.
+3. *Einstellungen → Geräte & Dienste → Integration hinzufügen → Solar Forecast Plus*.
+   Pro Dachseite einen Eintrag anlegen (Titel z. B. „Westseite Plus“). Die Sensoren
+   heißen dann `sensor.westseite_plus_…` und kollidieren nicht mit dem Original.
+
+Hinweis: Plus fragt Open-Meteo selbst ab. Läuft das Original parallel, verdoppeln
+sich die API-Abrufe (weit unter den Limits der freien API).
 
 ## Tests
 

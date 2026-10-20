@@ -11,8 +11,8 @@ from homeassistant.core import HomeAssistant
 from homeassistant.data_entry_flow import FlowResultType
 from pytest_homeassistant_custom_component.common import MockConfigEntry
 
-from custom_components.open_meteo_solar_forecast.const import DOMAIN
-from custom_components.open_meteo_solar_forecast.learner import (
+from custom_components.solar_forecast_plus.const import DOMAIN
+from custom_components.solar_forecast_plus.learner import (
     LearningState,
     energy_state_to_kwh,
     evaluate_day,
@@ -77,7 +77,7 @@ def _patch_api(response: dict | Exception):
         return response
 
     return patch(
-        "custom_components.open_meteo_solar_forecast.forecast_lib."
+        "custom_components.solar_forecast_plus.forecast_lib."
         "open_meteo_solar_forecast.OpenMeteoSolarForecast._request",
         fake_request,
     )
@@ -185,8 +185,8 @@ async def test_learning_end_to_end(hass: HomeAssistant):
         hass.states.async_set("sensor.cloud_mean", "70")
         await hass.services.async_call(DOMAIN, "learning_evaluate", blocking=True)
         await hass.async_block_till_done()
-        assert hass.states.get("sensor.open_meteo_ertrag_zu_prognose").state == "1.0"
-        assert hass.states.get("sensor.open_meteo_klare_tage").state == "0"
+        assert hass.states.get("sensor.solar_forecast_plus_ertrag_zu_prognose").state == "1.0"
+        assert hass.states.get("sensor.solar_forecast_plus_klare_tage").state == "0"
         assert learner.applied_factor is None
 
         # Two clear days with 10 % more yield than forecast
@@ -199,7 +199,7 @@ async def test_learning_end_to_end(hass: HomeAssistant):
 
         assert learner.state.clear_days == 2
         assert learner.applied_factor == pytest.approx(0.913, abs=0.002)
-        factor_state = hass.states.get("sensor.open_meteo_pv_faktor")
+        factor_state = hass.states.get("sensor.solar_forecast_plus_pv_faktor")
         assert factor_state.attributes["eingelernt"] is True
         assert factor_state.attributes["angewendet"] is True
         # The forecast now uses the learned factor
@@ -210,7 +210,7 @@ async def test_learning_end_to_end(hass: HomeAssistant):
             DOMAIN, "learning_set", {"factor": 0.85, "clear_days": 3}, blocking=True
         )
         await hass.async_block_till_done()
-        assert hass.states.get("sensor.open_meteo_pv_faktor").state == "0.85"
+        assert hass.states.get("sensor.solar_forecast_plus_pv_faktor").state == "0.85"
         assert coordinator.effective_efficiency == pytest.approx(0.85)
 
 
@@ -271,11 +271,11 @@ async def test_options_flow_learning_step(hass: HomeAssistant):
     assert entry.options["learn_enabled"] is True
     assert entry.options["azimuth"] == 250
     assert entry.options["max_snowcover_depth_cm"] == 5
-    assert hass.states.get("sensor.open_meteo_pv_faktor") is not None
+    assert hass.states.get("sensor.solar_forecast_plus_pv_faktor") is not None
 
 
 async def test_diagnostics_include_plus_data(hass: HomeAssistant):
-    from custom_components.open_meteo_solar_forecast.diagnostics import (
+    from custom_components.solar_forecast_plus.diagnostics import (
         async_get_config_entry_diagnostics,
     )
 

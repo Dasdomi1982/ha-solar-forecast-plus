@@ -99,7 +99,7 @@ def _normalize_option(value: Any, array_count: int, default: Any) -> list[Any]:
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     """Set up Solar Forecast from a config entry."""
     default_horizon_map: tuple[tuple[float, float], ...] = ((0.0, 0.0), (360.0, 0.0))
-    default_horizon_path = "/config/custom_components/open_meteo_solar_forecast/horizon.txt"
+    default_horizon_path = "/config/custom_components/solar_forecast_plus/horizon.txt"
 
     array_count = _resolve_array_count(entry)
     use_horizon_values = _normalize_option(

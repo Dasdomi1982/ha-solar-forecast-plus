@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.3.0 (2026-10-20)
+* Eigene Domain `solar_forecast_plus` (Ordner `custom_components/solar_forecast_plus`).
+  Plus läuft damit parallel zur originalen Integration; Einträge müssen neu angelegt werden.
+* Lern-Sensoren heißen jetzt `sensor.solar_forecast_plus_pv_faktor`,
+  `…_ertrag_zu_prognose` und `…_klare_tage`; Dienste `solar_forecast_plus.learning_*`.
+* Gerätename „Solar Forecast Plus“.
+
 ## 0.2.2 (2026-10-20)
 * Lizenzpflichten: Änderungshinweis im Kopf jeder geänderten Datei, NOTICE ergänzt.
 * Quellenhinweis für die Wetterdaten (Open-Meteo.com, CC BY 4.0) im README und in der NOTICE.

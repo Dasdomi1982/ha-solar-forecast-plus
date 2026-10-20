@@ -12,7 +12,7 @@ from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
-LIB = ROOT / "custom_components/open_meteo_solar_forecast/forecast_lib"
+LIB = ROOT / "custom_components/solar_forecast_plus/forecast_lib"
 
 # Import the vendored library as a stand-alone package (no Home Assistant needed).
 spec = importlib.util.spec_from_file_location(

@@ -84,48 +84,48 @@
     },
     "step": {
       "init": {
-        "description": "[%key:component::open_meteo_solar_forecast::config::step::user::description%]",
+        "description": "[%key:component::solar_forecast_plus::config::step::user::description%]",
         "data": {
           "api_key": "[%key:common::config_flow::data::api_key%]",
-          "base_url": "[%key:component::open_meteo_solar_forecast::config::step::user::data::base_url%]",
-          "model": "[%key:component::open_meteo_solar_forecast::config::step::user::data::model%]",
-          "inverter_power": "[%key:component::open_meteo_solar_forecast::config::step::user::data::inverter_power%]",
-          "max_snowcover_depth_cm": "[%key:component::open_meteo_solar_forecast::config::step::user::data::max_snowcover_depth_cm%]"
+          "base_url": "[%key:component::solar_forecast_plus::config::step::user::data::base_url%]",
+          "model": "[%key:component::solar_forecast_plus::config::step::user::data::model%]",
+          "inverter_power": "[%key:component::solar_forecast_plus::config::step::user::data::inverter_power%]",
+          "max_snowcover_depth_cm": "[%key:component::solar_forecast_plus::config::step::user::data::max_snowcover_depth_cm%]"
         },
         "data_description": {
-          "inverter_power": "[%key:component::open_meteo_solar_forecast::config::step::user::data_description::inverter_power%]",
-          "max_snowcover_depth_cm": "[%key:component::open_meteo_solar_forecast::config::step::user::data_description::max_snowcover_depth_cm%]"
+          "inverter_power": "[%key:component::solar_forecast_plus::config::step::user::data_description::inverter_power%]",
+          "max_snowcover_depth_cm": "[%key:component::solar_forecast_plus::config::step::user::data_description::max_snowcover_depth_cm%]"
         }
       },
       "array": {
-        "description": "[%key:component::open_meteo_solar_forecast::config::step::array::description%]",
+        "description": "[%key:component::solar_forecast_plus::config::step::array::description%]",
         "data": {
           "latitude": "[%key:common::config_flow::data::latitude%]",
           "longitude": "[%key:common::config_flow::data::longitude%]",
-          "declination": "[%key:component::open_meteo_solar_forecast::config::step::array::data::declination%]",
-          "azimuth": "[%key:component::open_meteo_solar_forecast::config::step::array::data::azimuth%]",
-          "modules_power": "[%key:component::open_meteo_solar_forecast::config::step::array::data::modules_power%]",
-          "array_inverter_power": "[%key:component::open_meteo_solar_forecast::config::step::array::data::array_inverter_power%]",
-          "tracking": "[%key:component::open_meteo_solar_forecast::config::step::array::data::tracking%]",
-          "efficiency_factor": "[%key:component::open_meteo_solar_forecast::config::step::array::data::efficiency_factor%]",
-          "damping_morning": "[%key:component::open_meteo_solar_forecast::config::step::array::data::damping_morning%]",
-          "damping_evening": "[%key:component::open_meteo_solar_forecast::config::step::array::data::damping_evening%]",
-          "use_horizon": "[%key:component::open_meteo_solar_forecast::config::step::array::data::use_horizon%]",
-          "partial_shading": "[%key:component::open_meteo_solar_forecast::config::step::array::data::partial_shading%]",
-          "horizon_filepath": "[%key:component::open_meteo_solar_forecast::config::step::array::data::horizon_filepath%]",
-          "add_another": "[%key:component::open_meteo_solar_forecast::config::step::array::data::add_another%]"
+          "declination": "[%key:component::solar_forecast_plus::config::step::array::data::declination%]",
+          "azimuth": "[%key:component::solar_forecast_plus::config::step::array::data::azimuth%]",
+          "modules_power": "[%key:component::solar_forecast_plus::config::step::array::data::modules_power%]",
+          "array_inverter_power": "[%key:component::solar_forecast_plus::config::step::array::data::array_inverter_power%]",
+          "tracking": "[%key:component::solar_forecast_plus::config::step::array::data::tracking%]",
+          "efficiency_factor": "[%key:component::solar_forecast_plus::config::step::array::data::efficiency_factor%]",
+          "damping_morning": "[%key:component::solar_forecast_plus::config::step::array::data::damping_morning%]",
+          "damping_evening": "[%key:component::solar_forecast_plus::config::step::array::data::damping_evening%]",
+          "use_horizon": "[%key:component::solar_forecast_plus::config::step::array::data::use_horizon%]",
+          "partial_shading": "[%key:component::solar_forecast_plus::config::step::array::data::partial_shading%]",
+          "horizon_filepath": "[%key:component::solar_forecast_plus::config::step::array::data::horizon_filepath%]",
+          "add_another": "[%key:component::solar_forecast_plus::config::step::array::data::add_another%]"
         },
         "data_description": {
-          "declination": "[%key:component::open_meteo_solar_forecast::config::step::array::data_description::declination%]",
-          "azimuth": "[%key:component::open_meteo_solar_forecast::config::step::array::data_description::azimuth%]",
-          "modules_power": "[%key:component::open_meteo_solar_forecast::config::step::array::data_description::modules_power%]",
-          "array_inverter_power": "[%key:component::open_meteo_solar_forecast::config::step::array::data_description::array_inverter_power%]",
-          "efficiency_factor": "[%key:component::open_meteo_solar_forecast::config::step::array::data_description::efficiency_factor%]",
-          "damping_morning": "[%key:component::open_meteo_solar_forecast::config::step::array::data_description::damping_morning%]",
-          "damping_evening": "[%key:component::open_meteo_solar_forecast::config::step::array::data_description::damping_evening%]",
-          "use_horizon": "[%key:component::open_meteo_solar_forecast::config::step::array::data_description::use_horizon%]",
-          "partial_shading": "[%key:component::open_meteo_solar_forecast::config::step::array::data_description::partial_shading%]",
-          "horizon_filepath": "[%key:component::open_meteo_solar_forecast::config::step::array::data_description::horizon_filepath%]"
+          "declination": "[%key:component::solar_forecast_plus::config::step::array::data_description::declination%]",
+          "azimuth": "[%key:component::solar_forecast_plus::config::step::array::data_description::azimuth%]",
+          "modules_power": "[%key:component::solar_forecast_plus::config::step::array::data_description::modules_power%]",
+          "array_inverter_power": "[%key:component::solar_forecast_plus::config::step::array::data_description::array_inverter_power%]",
+          "efficiency_factor": "[%key:component::solar_forecast_plus::config::step::array::data_description::efficiency_factor%]",
+          "damping_morning": "[%key:component::solar_forecast_plus::config::step::array::data_description::damping_morning%]",
+          "damping_evening": "[%key:component::solar_forecast_plus::config::step::array::data_description::damping_evening%]",
+          "use_horizon": "[%key:component::solar_forecast_plus::config::step::array::data_description::use_horizon%]",
+          "partial_shading": "[%key:component::solar_forecast_plus::config::step::array::data_description::partial_shading%]",
+          "horizon_filepath": "[%key:component::solar_forecast_plus::config::step::array::data_description::horizon_filepath%]"
         }
       },
       "learning": {

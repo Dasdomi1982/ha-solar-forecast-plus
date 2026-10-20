@@ -5,7 +5,7 @@ from __future__ import annotations
 
 import logging
 
-DOMAIN = "open_meteo_solar_forecast"
+DOMAIN = "solar_forecast_plus"
 LOGGER = logging.getLogger(__package__)
 
 CONF_BASE_URL = "base_url"

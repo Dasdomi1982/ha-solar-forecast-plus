@@ -20,13 +20,13 @@ except ImportError:  # older cores
     def to_field_list(schema, custom_serializer):
         return voluptuous_serialize.convert(schema, custom_serializer=custom_serializer)
 
-from custom_components.open_meteo_solar_forecast.config_flow import (
+from custom_components.solar_forecast_plus.config_flow import (
     OpenMeteoSolarForecastFlowHandler,
     OpenMeteoSolarForecastOptionFlowHandler,
 )
 
 ROOT = (
-    Path(__file__).resolve().parents[1] / "custom_components/open_meteo_solar_forecast"
+    Path(__file__).resolve().parents[1] / "custom_components/solar_forecast_plus"
 )
 
 

@@ -60,7 +60,7 @@ except ImportError:
 CONF_ADD_ANOTHER = "add_another"
 
 DEFAULT_HORIZON_FILEPATH = (
-    "/config/custom_components/open_meteo_solar_forecast/horizon.txt"
+    "/config/custom_components/solar_forecast_plus/horizon.txt"
 )
 
 # Fields that can differ per PV array. Stored as a scalar for a single array

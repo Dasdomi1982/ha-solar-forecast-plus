@@ -8,7 +8,7 @@ This product is a modified version of:
   - open-meteo-solar-forecast 0.1.32
     (https://github.com/rany2/open-meteo-solar-forecast)
     Copyright (c) 2021-2024 Klaas Schoute and rany2, licensed under the MIT License.
-    Embedded as custom_components/open_meteo_solar_forecast/forecast_lib.
+    Embedded as custom_components/solar_forecast_plus/forecast_lib.
 
 Modified files (each carries a notice in its header, except JSON files):
   __init__.py, config_flow.py, const.py, coordinator.py, diagnostics.py,

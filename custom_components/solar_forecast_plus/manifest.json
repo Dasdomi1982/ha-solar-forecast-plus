@@ -1,5 +1,5 @@
 {
-  "domain": "open_meteo_solar_forecast",
+  "domain": "solar_forecast_plus",
   "name": "Solar Forecast Plus",
   "codeowners": [
     "@Dasdomi1982"
@@ -13,5 +13,5 @@
     "suncalc>=0.1.0,<0.2.0",
     "pytz>=2024.1"
   ],
-  "version": "0.2.2"
+  "version": "0.3.0"
 }

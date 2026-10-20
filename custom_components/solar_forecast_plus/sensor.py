@@ -282,7 +282,7 @@ class OpenMeteoSolarForecastSensorEntity(
             entry_type=DeviceEntryType.SERVICE,
             identifiers={(DOMAIN, entry_id)},
             manufacturer="Open-Meteo",
-            name="Solar production forecast",
+            name="Solar Forecast Plus",
             configuration_url="https://open-meteo.com",
         )
 
@@ -391,7 +391,7 @@ class LearningSensorEntity(SensorEntity):
         self._kind = kind
         self._attr_translation_key = kind
         self._attr_unique_id = f"{entry_id}_{kind}"
-        self.entity_id = f"{SENSOR_DOMAIN}.open_meteo_{self._ENTITY_SUFFIX[kind]}"
+        self.entity_id = f"{SENSOR_DOMAIN}.solar_forecast_plus_{self._ENTITY_SUFFIX[kind]}"
         self._attr_icon = self._ICONS[kind]
         if kind == "learned_factor":
             self._attr_suggested_display_precision = 2
@@ -401,7 +401,7 @@ class LearningSensorEntity(SensorEntity):
             entry_type=DeviceEntryType.SERVICE,
             identifiers={(DOMAIN, entry_id)},
             manufacturer="Open-Meteo",
-            name="Solar production forecast",
+            name="Solar Forecast Plus",
             configuration_url="https://open-meteo.com",
         )
 
