@@ -1,0 +1,278 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "description": "General settings shared by all PV arrays. You will configure each array in the next step.",
+        "data": {
+          "api_key": "API key",
+          "base_url": "API base URL",
+          "name": "Name",
+          "model": "Weather model",
+          "inverter_power": "Inverter capacity",
+          "max_snowcover_depth_cm": "Maximum snow cover depth"
+        },
+        "data_description": {
+          "inverter_power": "The AC capacity of a single inverter shared by all arrays in Watt (0 = no limit). Ignored if any array has its own inverter capacity set on the array pages.",
+          "max_snowcover_depth_cm": "If greater than 0, the snow cover depth which results in zero module power."
+        }
+      },
+      "array": {
+        "description": "Settings for PV array {array_number}. Enable “Add another array” to configure an additional array with its own orientation and power.",
+        "data": {
+          "latitude": "Latitude",
+          "longitude": "Longitude",
+          "declination": "Declination",
+          "azimuth": "Azimuth",
+          "modules_power": "Modules peak power",
+          "array_inverter_power": "Array inverter capacity",
+          "tracking": "Solar tracker type",
+          "efficiency_factor": "DC efficiency factor",
+          "damping_morning": "Morning damping factor",
+          "damping_evening": "Evening damping factor",
+          "use_horizon": "Use horizon file",
+          "partial_shading": "Partial shading",
+          "horizon_filepath": "Horizon file path",
+          "add_another": "Add another array"
+        },
+        "data_description": {
+          "declination": "0 = horizontal, 90 = vertical.",
+          "azimuth": "0 = North, 90 = East, 180 = South, 270 = West.",
+          "modules_power": "Total Watt peak power of the solar modules in this array.",
+          "array_inverter_power": "The AC capacity of this array's own inverter in Watt (0 = no dedicated inverter). If any array has its own inverter, each array is clamped individually and the shared inverter capacity is ignored.",
+          "efficiency_factor": "0.0 = 100% loss, 1.0 = no loss.",
+          "damping_morning": "0.0 = no damping, 1.0 = full damping in the morning.",
+          "damping_evening": "0.0 = no damping, 1.0 = full damping in the evening.",
+          "use_horizon": "Use the horizon line defined in the horizon file (see docs) to respect shading of the modules.",
+          "partial_shading": "Only if horizon is enabled: treat shadows as partial.",
+          "horizon_filepath": "Path to the horizon file (leave empty for the default path)."
+        }
+      },
+      "learning": {
+        "title": "Self-learning efficiency factor",
+        "description": "Optional: compare the actual PV yield with the forecast every evening and learn the efficiency factor from clear days. Enable it in one entry only; it covers all entries of this integration.",
+        "data": {
+          "learn_enabled": "Enable learning",
+          "learn_actual_entity": "Actual daily PV yield",
+          "learn_cloud_entity": "Daily cloud cover",
+          "learn_cloud_threshold": "Clear-day threshold",
+          "learn_smoothing": "Smoothing",
+          "learn_min_days": "Clear days before applying",
+          "learn_auto_apply": "Apply learned factor automatically",
+          "learn_sunset_offset": "Evaluate after sunset"
+        },
+        "data_description": {
+          "learn_actual_entity": "Energy sensor of today's total PV yield that resets every day (e.g. daily PV energy of the inverter).",
+          "learn_cloud_entity": "Sensor with the average cloud cover of the day in %. Only days below the threshold are learned from.",
+          "learn_cloud_threshold": "Days with less cloud cover than this count as clear.",
+          "learn_smoothing": "Weight of a new clear day (0.2 = 20 % new, 80 % previous).",
+          "learn_min_days": "Number of clear days needed before the learned factor is considered reliable.",
+          "learn_auto_apply": "Once enough clear days are collected, the learned factor replaces the configured efficiency factor of all entries.",
+          "learn_sunset_offset": "Minutes after sunset when the day is evaluated."
+        }
+      }
+    },
+    "error": {
+      "learn_actual_required": "Please select the sensor with the actual daily PV yield.",
+      "learn_cloud_required": "Please select a cloud cover sensor."
+    }
+  },
+  "entity": {
+    "sensor": {
+      "energy_current_hour": {
+        "name": "Estimated energy production - this hour"
+      },
+      "energy_next_hour": {
+        "name": "Estimated energy production - next hour"
+      },
+      "energy_production_today": {
+        "name": "Estimated energy production - today"
+      },
+      "energy_production_today_remaining": {
+        "name": "Estimated energy production - remaining today"
+      },
+      "energy_production_tomorrow": {
+        "name": "Estimated energy production - tomorrow"
+      },
+      "energy_production_d2": {
+        "name": "Estimated energy production - day after tomorrow"
+      },
+      "energy_production_d3": {
+        "name": "Estimated energy production - 3 days from now"
+      },
+      "energy_production_d4": {
+        "name": "Estimated energy production - 4 days from now"
+      },
+      "energy_production_d5": {
+        "name": "Estimated energy production - 5 days from now"
+      },
+      "energy_production_d6": {
+        "name": "Estimated energy production - 6 days from now"
+      },
+      "energy_production_d7": {
+        "name": "Estimated energy production - 7 days from now"
+      },
+      "power_highest_peak_time_today": {
+        "name": "Highest power peak time - today"
+      },
+      "power_highest_peak_time_tomorrow": {
+        "name": "Highest power peak time - tomorrow"
+      },
+      "power_production_next_12hours": {
+        "name": "Estimated power production - next 12 hours"
+      },
+      "power_production_next_24hours": {
+        "name": "Estimated power production - next 24 hours"
+      },
+      "power_production_next_hour": {
+        "name": "Estimated power production - next hour"
+      },
+      "power_production_now": {
+        "name": "Estimated power production - now"
+      },
+      "power_production_next_15minutes": {
+        "name": "Estimated power production - next 15 minutes"
+      },
+      "power_production_next_30minutes": {
+        "name": "Estimated power production - next 30 minutes"
+      },
+      "learned_factor": {
+        "name": "Learned efficiency factor"
+      },
+      "yield_ratio": {
+        "name": "Actual to forecast ratio"
+      },
+      "clear_days": {
+        "name": "Clear days learned"
+      }
+    }
+  },
+  "options": {
+    "error": {
+      "invalid_api_key": "Invalid API key",
+      "learn_actual_required": "Please select the sensor with the actual daily PV yield.",
+      "learn_cloud_required": "Please select a cloud cover sensor."
+    },
+    "step": {
+      "init": {
+        "description": "General settings shared by all PV arrays. You will configure each array in the next step.",
+        "data": {
+          "api_key": "API key",
+          "base_url": "API base URL",
+          "model": "Weather model",
+          "inverter_power": "Inverter capacity",
+          "max_snowcover_depth_cm": "Maximum snow cover depth"
+        },
+        "data_description": {
+          "inverter_power": "The AC capacity of a single inverter shared by all arrays in Watt (0 = no limit). Ignored if any array has its own inverter capacity set on the array pages.",
+          "max_snowcover_depth_cm": "If greater than 0, the snow cover depth which results in zero module power."
+        }
+      },
+      "array": {
+        "description": "Settings for PV array {array_number}. Enable “Add another array” to configure an additional array with its own orientation and power.",
+        "data": {
+          "latitude": "Latitude",
+          "longitude": "Longitude",
+          "declination": "Declination",
+          "azimuth": "Azimuth",
+          "modules_power": "Modules peak power",
+          "array_inverter_power": "Array inverter capacity",
+          "tracking": "Solar tracker type",
+          "efficiency_factor": "DC efficiency factor",
+          "damping_morning": "Morning damping factor",
+          "damping_evening": "Evening damping factor",
+          "use_horizon": "Use horizon file",
+          "partial_shading": "Partial shading",
+          "horizon_filepath": "Horizon file path",
+          "add_another": "Add another array"
+        },
+        "data_description": {
+          "declination": "0 = horizontal, 90 = vertical.",
+          "azimuth": "0 = North, 90 = East, 180 = South, 270 = West.",
+          "modules_power": "Total Watt peak power of the solar modules in this array.",
+          "array_inverter_power": "The AC capacity of this array's own inverter in Watt (0 = no dedicated inverter). If any array has its own inverter, each array is clamped individually and the shared inverter capacity is ignored.",
+          "efficiency_factor": "0.0 = 100% loss, 1.0 = no loss.",
+          "damping_morning": "0.0 = no damping, 1.0 = full damping in the morning.",
+          "damping_evening": "0.0 = no damping, 1.0 = full damping in the evening.",
+          "use_horizon": "Use the horizon line defined in the horizon file (see docs) to respect shading of the modules.",
+          "partial_shading": "Only if horizon is enabled: treat shadows as partial.",
+          "horizon_filepath": "Path to the horizon file (leave empty for the default path)."
+        }
+      },
+      "learning": {
+        "title": "Self-learning efficiency factor",
+        "description": "Optional: compare the actual PV yield with the forecast every evening and learn the efficiency factor from clear days. Enable it in one entry only; it covers all entries of this integration.",
+        "data": {
+          "learn_enabled": "Enable learning",
+          "learn_actual_entity": "Actual daily PV yield",
+          "learn_cloud_entity": "Daily cloud cover",
+          "learn_cloud_threshold": "Clear-day threshold",
+          "learn_smoothing": "Smoothing",
+          "learn_min_days": "Clear days before applying",
+          "learn_auto_apply": "Apply learned factor automatically",
+          "learn_sunset_offset": "Evaluate after sunset"
+        },
+        "data_description": {
+          "learn_actual_entity": "Energy sensor of today's total PV yield that resets every day (e.g. daily PV energy of the inverter).",
+          "learn_cloud_entity": "Sensor with the average cloud cover of the day in %. Only days below the threshold are learned from.",
+          "learn_cloud_threshold": "Days with less cloud cover than this count as clear.",
+          "learn_smoothing": "Weight of a new clear day (0.2 = 20 % new, 80 % previous).",
+          "learn_min_days": "Number of clear days needed before the learned factor is considered reliable.",
+          "learn_auto_apply": "Once enough clear days are collected, the learned factor replaces the configured efficiency factor of all entries.",
+          "learn_sunset_offset": "Minutes after sunset when the day is evaluated."
+        }
+      }
+    }
+  },
+  "services": {
+    "update_array_location": {
+      "name": "Update Array Location",
+      "description": "Update the array location to match that of the provided coordinates, or to the configured HA home location if no coordinates are provided.",
+      "fields": {
+        "location_override": {
+          "name": "Location Override",
+          "description": "Optional location to set the array to, if omitted the array will be set to the HA home location."
+        }
+      }
+    },
+    "learning_evaluate": {
+      "name": "Evaluate learning now",
+      "description": "Compare today's actual yield with the forecast right now (normally done automatically after sunset). Only use it after the sun has set."
+    },
+    "learning_set": {
+      "name": "Set learning state",
+      "description": "Correct or import the learned state, e.g. when migrating.",
+      "fields": {
+        "factor": {
+          "name": "Factor",
+          "description": "Learned efficiency factor."
+        },
+        "clear_days": {
+          "name": "Clear days",
+          "description": "Number of clear days already learned."
+        },
+        "last_clear_date": {
+          "name": "Last clear day",
+          "description": "Date of the last clear day (YYYY-MM-DD)."
+        },
+        "history": {
+          "name": "History",
+          "description": "List of daily values like [{\"d\": \"2026-10-19\", \"v\": 1.07, \"k\": false}]."
+        },
+        "reset": {
+          "name": "Reset",
+          "description": "Reset everything before applying the other fields."
+        }
+      }
+    }
+  },
+  "selector": {
+    "tracking": {
+      "options": {
+        "none": "None (fixed panels)",
+        "azimuth": "Azimuth (vertical-axis)",
+        "tilt": "Tilt-axis",
+        "dual": "Dual-axis"
+      }
+    }
+  }
+}

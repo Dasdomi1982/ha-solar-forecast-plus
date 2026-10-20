@@ -1,0 +1,39 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "data": {
+          "name": "Nama"
+        }
+      },
+      "array": {
+        "data": {
+          "azimuth": "Azimuth (360 derajat, 0 = Utara, 90 = Timur, 180 = Selatan, 270 = Barat)",
+          "declination": "Deklinasi (0 = Horizontal, 90 = Vertikal)",
+          "latitude": "Lintang",
+          "longitude": "Bujur",
+          "modules_power": "Total daya puncak modul surya Anda dalam Watt"
+        }
+      }
+    }
+  },
+  "options": {
+    "error": {
+      "invalid_api_key": "Kunci API tidak valid"
+    },
+    "step": {
+      "init": {
+        "data": {
+          "api_key": "Kunci API"
+        }
+      },
+      "array": {
+        "data": {
+          "azimuth": "Azimuth (360 derajat, 0 = Utara, 90 = Timur, 180 = Selatan, 270 = Barat)",
+          "declination": "Deklinasi (0 = Horizontal, 90 = Vertikal)",
+          "modules_power": "Total daya puncak modul surya Anda dalam Watt"
+        }
+      }
+    }
+  }
+}

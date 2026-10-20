@@ -1,0 +1,148 @@
+{
+  "config": {
+    "step": {
+      "user": {},
+      "array": {
+        "data": {
+          "modules_power": "Total Watt peak power of your solar modules"
+        }
+      },
+      "learning": {
+        "title": "Self-learning efficiency factor",
+        "description": "Optional: compare the actual PV yield with the forecast every evening and learn the efficiency factor from clear days. Enable it in one entry only; it covers all entries of this integration.",
+        "data": {
+          "learn_enabled": "Enable learning",
+          "learn_actual_entity": "Actual daily PV yield",
+          "learn_cloud_entity": "Daily cloud cover",
+          "learn_cloud_threshold": "Clear-day threshold",
+          "learn_smoothing": "Smoothing",
+          "learn_min_days": "Clear days before applying",
+          "learn_auto_apply": "Apply learned factor automatically",
+          "learn_sunset_offset": "Evaluate after sunset"
+        },
+        "data_description": {
+          "learn_actual_entity": "Energy sensor of today's total PV yield that resets every day (e.g. daily PV energy of the inverter).",
+          "learn_cloud_entity": "Sensor with the average cloud cover of the day in %. Only days below the threshold are learned from.",
+          "learn_cloud_threshold": "Days with less cloud cover than this count as clear.",
+          "learn_smoothing": "Weight of a new clear day (0.2 = 20 % new, 80 % previous).",
+          "learn_min_days": "Number of clear days needed before the learned factor is considered reliable.",
+          "learn_auto_apply": "Once enough clear days are collected, the learned factor replaces the configured efficiency factor of all entries.",
+          "learn_sunset_offset": "Minutes after sunset when the day is evaluated."
+        }
+      }
+    },
+    "error": {
+      "learn_actual_required": "Please select the sensor with the actual daily PV yield.",
+      "learn_cloud_required": "Please select a cloud cover sensor."
+    }
+  },
+  "entity": {
+    "sensor": {
+      "energy_current_hour": {
+        "name": "Estimated energy production - this hour"
+      },
+      "energy_next_hour": {
+        "name": "Estimated energy production - next hour"
+      },
+      "energy_production_today": {
+        "name": "Estimated energy production - today"
+      },
+      "energy_production_today_remaining": {
+        "name": "Estimated energy production - remaining today"
+      },
+      "energy_production_tomorrow": {
+        "name": "Estimated energy production - tomorrow"
+      },
+      "power_highest_peak_time_today": {
+        "name": "Highest power peak time - today"
+      },
+      "power_highest_peak_time_tomorrow": {
+        "name": "Highest power peak time - tomorrow"
+      },
+      "power_production_next_12hours": {
+        "name": "Estimated power production - next 12 hours"
+      },
+      "power_production_next_24hours": {
+        "name": "Estimated power production - next 24 hours"
+      },
+      "power_production_next_hour": {
+        "name": "Estimated power production - next hour"
+      },
+      "power_production_now": {
+        "name": "Estimated power production - now"
+      },
+      "learned_factor": {
+        "name": "Learned efficiency factor"
+      },
+      "yield_ratio": {
+        "name": "Actual to forecast ratio"
+      },
+      "clear_days": {
+        "name": "Clear days learned"
+      }
+    }
+  },
+  "options": {
+    "step": {
+      "learning": {
+        "title": "Self-learning efficiency factor",
+        "description": "Optional: compare the actual PV yield with the forecast every evening and learn the efficiency factor from clear days. Enable it in one entry only; it covers all entries of this integration.",
+        "data": {
+          "learn_enabled": "Enable learning",
+          "learn_actual_entity": "Actual daily PV yield",
+          "learn_cloud_entity": "Daily cloud cover",
+          "learn_cloud_threshold": "Clear-day threshold",
+          "learn_smoothing": "Smoothing",
+          "learn_min_days": "Clear days before applying",
+          "learn_auto_apply": "Apply learned factor automatically",
+          "learn_sunset_offset": "Evaluate after sunset"
+        },
+        "data_description": {
+          "learn_actual_entity": "Energy sensor of today's total PV yield that resets every day (e.g. daily PV energy of the inverter).",
+          "learn_cloud_entity": "Sensor with the average cloud cover of the day in %. Only days below the threshold are learned from.",
+          "learn_cloud_threshold": "Days with less cloud cover than this count as clear.",
+          "learn_smoothing": "Weight of a new clear day (0.2 = 20 % new, 80 % previous).",
+          "learn_min_days": "Number of clear days needed before the learned factor is considered reliable.",
+          "learn_auto_apply": "Once enough clear days are collected, the learned factor replaces the configured efficiency factor of all entries.",
+          "learn_sunset_offset": "Minutes after sunset when the day is evaluated."
+        }
+      }
+    },
+    "error": {
+      "learn_actual_required": "Please select the sensor with the actual daily PV yield.",
+      "learn_cloud_required": "Please select a cloud cover sensor."
+    }
+  },
+  "services": {
+    "learning_evaluate": {
+      "name": "Evaluate learning now",
+      "description": "Compare today's actual yield with the forecast right now (normally done automatically after sunset). Only use it after the sun has set."
+    },
+    "learning_set": {
+      "name": "Set learning state",
+      "description": "Correct or import the learned state, e.g. when migrating.",
+      "fields": {
+        "factor": {
+          "name": "Factor",
+          "description": "Learned efficiency factor."
+        },
+        "clear_days": {
+          "name": "Clear days",
+          "description": "Number of clear days already learned."
+        },
+        "last_clear_date": {
+          "name": "Last clear day",
+          "description": "Date of the last clear day (YYYY-MM-DD)."
+        },
+        "history": {
+          "name": "History",
+          "description": "List of daily values like [{\"d\": \"2026-10-19\", \"v\": 1.07, \"k\": false}]."
+        },
+        "reset": {
+          "name": "Reset",
+          "description": "Reset everything before applying the other fields."
+        }
+      }
+    }
+  }
+}

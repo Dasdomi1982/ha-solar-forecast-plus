@@ -1,0 +1,12 @@
+{
+  "config": {
+    "step": {
+      "user": {},
+      "array": {
+        "data": {
+          "longitude": "Garums"
+        }
+      }
+    }
+  }
+}

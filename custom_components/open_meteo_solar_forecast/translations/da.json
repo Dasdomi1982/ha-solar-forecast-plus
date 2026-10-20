@@ -1,0 +1,22 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "data": {
+          "name": "Navn"
+        }
+      },
+      "array": {
+        "data": {
+          "latitude": "Breddegrad",
+          "longitude": "Længdegrad"
+        }
+      }
+    }
+  },
+  "options": {
+    "error": {
+      "invalid_api_key": "Ugyldig API-nøgle"
+    }
+  }
+}

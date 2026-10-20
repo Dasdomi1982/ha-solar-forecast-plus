@@ -1,0 +1,28 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "data": {
+          "name": "Naziv"
+        }
+      },
+      "array": {
+        "data": {
+          "azimuth": "Azimut (360 stopinj, 0 = sever, 90 = vzhod, 180 = jug, 270 = zahod)",
+          "declination": "Odstopanja (0 = vodoravno, 90 = navpično)",
+          "latitude": "Zemljepisna širina",
+          "longitude": "Zemljepisna dolžina"
+        }
+      }
+    }
+  },
+  "options": {
+    "error": {
+      "invalid_api_key": "Neveljaven API ključ"
+    },
+    "step": {
+      "init": {},
+      "array": {}
+    }
+  }
+}

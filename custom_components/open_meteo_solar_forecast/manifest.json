@@ -1,0 +1,17 @@
+{
+  "domain": "open_meteo_solar_forecast",
+  "name": "Solar Forecast Plus",
+  "codeowners": [
+    "@Dasdomi1982"
+  ],
+  "config_flow": true,
+  "documentation": "https://github.com/Dasdomi1982/ha-solar-forecast-plus",
+  "integration_type": "service",
+  "iot_class": "cloud_polling",
+  "issue_tracker": "https://github.com/Dasdomi1982/ha-solar-forecast-plus/issues",
+  "requirements": [
+    "suncalc>=0.1.0,<0.2.0",
+    "pytz>=2024.1"
+  ],
+  "version": "0.2.0"
+}

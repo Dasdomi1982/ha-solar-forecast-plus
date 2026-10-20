@@ -1,0 +1,212 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "data": {
+          "api_key": "API-Schlüssel",
+          "name": "Name",
+          "max_snowcover_depth_cm": "Wenn > 0, die Schneehöhe (cm), bei welcher das Modul keine Leistung mehr liefert."
+        },
+        "description": "Allgemeine Einstellungen für alle PV-Anlagen. Klicke auf „Weiter“, um Standort, Ausrichtung, Leistung und weitere Einstellungen jeder Anlage zu bearbeiten."
+      },
+      "array": {
+        "data": {
+          "azimuth": "Azimut (360 Grad, 0 = Norden, 90 = Osten, 180 = Süden, 270 = Westen)",
+          "tracking": "Solar-Tracker-Typ: none, azimuth (vertikale Achse), tilt (Neigungsachse) oder dual (zweiachsig)",
+          "declination": "Deklination (0 = Horizontal, 90 = Vertikal)",
+          "latitude": "Breitengrad",
+          "longitude": "Längengrad",
+          "modules_power": "Gesamt-Watt-Spitzenleistung deiner Solarmodule",
+          "use_horizon": "Wenn aktiviert, wird die in der Horizontdatei spezifizierte Horizontlinie für die Beschattung der Module berücksichtigt.",
+          "horizon_filepath": "Pfad zur Horizont-Datei",
+          "partial_shading": "(Nur zusammen mit Horizontlinie:) Wenn aktiviert, werden Schatten als partiell behandelt.",
+          "add_another": "Weitere Anlage hinzufügen"
+        },
+        "description": "Einstellungen für PV-Anlage {array_number}. Aktiviere „Weitere Anlage hinzufügen“, um eine weitere Anlage zu konfigurieren."
+      },
+      "learning": {
+        "title": "Selbstlernender Wirkungsgrad",
+        "description": "Optional: Jeden Abend wird der echte PV-Ertrag mit der Prognose verglichen und an klaren Tagen der Wirkungsgrad gelernt. Nur in einem Eintrag aktivieren – er gilt für alle Einträge dieser Integration.",
+        "data": {
+          "learn_enabled": "Lernen aktivieren",
+          "learn_actual_entity": "Tatsächlicher PV-Tagesertrag",
+          "learn_cloud_entity": "Bewölkung im Tagesmittel",
+          "learn_cloud_threshold": "Schwelle für klare Tage",
+          "learn_smoothing": "Glättung",
+          "learn_min_days": "Klare Tage bis zur Anwendung",
+          "learn_auto_apply": "Gelernten Faktor automatisch anwenden",
+          "learn_sunset_offset": "Auswertung nach Sonnenuntergang"
+        },
+        "data_description": {
+          "learn_actual_entity": "Energie-Sensor mit dem heutigen PV-Gesamtertrag, der täglich zurückgesetzt wird (z. B. Tages-PV-Energie des Wechselrichters).",
+          "learn_cloud_entity": "Sensor mit der mittleren Bewölkung des Tages in %. Gelernt wird nur an Tagen unter der Schwelle.",
+          "learn_cloud_threshold": "Tage mit weniger Bewölkung gelten als klar.",
+          "learn_smoothing": "Gewicht eines neuen klaren Tages (0,2 = 20 % neu, 80 % bisher).",
+          "learn_min_days": "So viele klare Tage braucht es, bis der gelernte Faktor als verlässlich gilt.",
+          "learn_auto_apply": "Sobald genug klare Tage gesammelt sind, ersetzt der gelernte Faktor den eingestellten Wirkungsgrad aller Einträge.",
+          "learn_sunset_offset": "Minuten nach Sonnenuntergang, zu denen der Tag ausgewertet wird."
+        }
+      }
+    },
+    "error": {
+      "learn_actual_required": "Bitte den Sensor mit dem tatsächlichen PV-Tagesertrag auswählen.",
+      "learn_cloud_required": "Bitte einen Bewölkungs-Sensor auswählen."
+    }
+  },
+  "entity": {
+    "sensor": {
+      "energy_current_hour": {
+        "name": "Geschätzte Energieproduktion – diese Stunde"
+      },
+      "energy_next_hour": {
+        "name": "Geschätzte Energieproduktion – nächste Stunde"
+      },
+      "energy_production_today": {
+        "name": "Geschätzte Energieproduktion – heute"
+      },
+      "energy_production_today_remaining": {
+        "name": "Geschätzte Energieproduktion – heute noch verbleibend"
+      },
+      "energy_production_tomorrow": {
+        "name": "Geschätzte Energieproduktion – morgen"
+      },
+      "energy_production_d2": {
+        "name": "Geschätzte Energieproduktion - übermorgen"
+      },
+      "energy_production_d3": {
+        "name": "Geschätzte Energieproduktion - in 3 Tagen"
+      },
+      "energy_production_d4": {
+        "name": "Geschätzte Energieproduktion - in 4 Tagen"
+      },
+      "energy_production_d5": {
+        "name": "Geschätzte Energieproduktion - in 5 Tagen"
+      },
+      "energy_production_d6": {
+        "name": "Geschätzte Energieproduktion - in 6 Tagen"
+      },
+      "energy_production_d7": {
+        "name": "Geschätzte Energieproduktion - in 7 Tagen"
+      },
+      "power_highest_peak_time_today": {
+        "name": "Höchste Leistungsspitzenzeit - heute"
+      },
+      "power_highest_peak_time_tomorrow": {
+        "name": "Höchste Leistungsspitzenzeit - morgen"
+      },
+      "power_production_next_12hours": {
+        "name": "Geschätzte Stromproduktion – nächste 12 Stunden"
+      },
+      "power_production_next_24hours": {
+        "name": "Geschätzte Stromproduktion – nächste 24 Stunden"
+      },
+      "power_production_next_hour": {
+        "name": "Geschätzte Stromproduktion – nächste Stunde"
+      },
+      "power_production_now": {
+        "name": "Geschätzte Stromproduktion – jetzt"
+      },
+      "power_production_next_15minutes": {
+        "name": "Geschätzte Stromproduktion - nächste 15 Minuten"
+      },
+      "power_production_next_30minutes": {
+        "name": "Geschätzte Stromproduktion - nächste 30 Minuten"
+      },
+      "learned_factor": {
+        "name": "Gelernter Wirkungsgrad"
+      },
+      "yield_ratio": {
+        "name": "Ertrag zu Prognose"
+      },
+      "clear_days": {
+        "name": "Gelernte klare Tage"
+      }
+    }
+  },
+  "options": {
+    "error": {
+      "invalid_api_key": "Ungültiger API-Schlüssel",
+      "learn_actual_required": "Bitte den Sensor mit dem tatsächlichen PV-Tagesertrag auswählen.",
+      "learn_cloud_required": "Bitte einen Bewölkungs-Sensor auswählen."
+    },
+    "step": {
+      "init": {
+        "data": {
+          "api_key": "API-Schlüssel",
+          "max_snowcover_depth_cm": "Kritische Schneehöhe (cm)"
+        },
+        "description": "Allgemeine Einstellungen für alle PV-Anlagen. Klicke auf „Weiter“, um Standort, Ausrichtung, Leistung und weitere Einstellungen jeder Anlage zu bearbeiten."
+      },
+      "array": {
+        "data": {
+          "azimuth": "Azimut (360 Grad, 0 = Norden, 90 = Osten, 180 = Süden, 270 = Westen)",
+          "tracking": "Solar-Tracker-Typ: none, azimuth (vertikale Achse), tilt (Neigungsachse) oder dual (zweiachsig)",
+          "damping_evening": "Dämpfungsfaktor: Passt die Ergebnisse am Abend an (0.0-1.0, 0.0 = keine Dämpfung, 1.0 = maximale Dämpfung)",
+          "damping_morning": "Dämpfungsfaktor: Passt die Ergebnisse am Morgen an (0.0-1.0, 0.0 = keine Dämpfung, 1.0 = maximale Dämpfung)",
+          "declination": "Deklination (0 = Horizontal, 90 = Vertikal)",
+          "modules_power": "Gesamt-Watt-Spitzenleistung deiner Solarmodule",
+          "use_horizon": "Berücksichtige Horizontline aus Horizont-Datei",
+          "horizon_filepath": "Pfad zur Horizont-Datei",
+          "partial_shading": "Behandle Schatten als partiell",
+          "add_another": "Weitere Anlage hinzufügen"
+        },
+        "description": "Einstellungen für PV-Anlage {array_number}. Aktiviere „Weitere Anlage hinzufügen“, um eine weitere Anlage zu konfigurieren."
+      },
+      "learning": {
+        "title": "Selbstlernender Wirkungsgrad",
+        "description": "Optional: Jeden Abend wird der echte PV-Ertrag mit der Prognose verglichen und an klaren Tagen der Wirkungsgrad gelernt. Nur in einem Eintrag aktivieren – er gilt für alle Einträge dieser Integration.",
+        "data": {
+          "learn_enabled": "Lernen aktivieren",
+          "learn_actual_entity": "Tatsächlicher PV-Tagesertrag",
+          "learn_cloud_entity": "Bewölkung im Tagesmittel",
+          "learn_cloud_threshold": "Schwelle für klare Tage",
+          "learn_smoothing": "Glättung",
+          "learn_min_days": "Klare Tage bis zur Anwendung",
+          "learn_auto_apply": "Gelernten Faktor automatisch anwenden",
+          "learn_sunset_offset": "Auswertung nach Sonnenuntergang"
+        },
+        "data_description": {
+          "learn_actual_entity": "Energie-Sensor mit dem heutigen PV-Gesamtertrag, der täglich zurückgesetzt wird (z. B. Tages-PV-Energie des Wechselrichters).",
+          "learn_cloud_entity": "Sensor mit der mittleren Bewölkung des Tages in %. Gelernt wird nur an Tagen unter der Schwelle.",
+          "learn_cloud_threshold": "Tage mit weniger Bewölkung gelten als klar.",
+          "learn_smoothing": "Gewicht eines neuen klaren Tages (0,2 = 20 % neu, 80 % bisher).",
+          "learn_min_days": "So viele klare Tage braucht es, bis der gelernte Faktor als verlässlich gilt.",
+          "learn_auto_apply": "Sobald genug klare Tage gesammelt sind, ersetzt der gelernte Faktor den eingestellten Wirkungsgrad aller Einträge.",
+          "learn_sunset_offset": "Minuten nach Sonnenuntergang, zu denen der Tag ausgewertet wird."
+        }
+      }
+    }
+  },
+  "services": {
+    "learning_evaluate": {
+      "name": "Lernen jetzt auswerten",
+      "description": "Vergleicht den heutigen Ist-Ertrag sofort mit der Prognose (passiert sonst automatisch nach Sonnenuntergang). Nur nach Sonnenuntergang verwenden."
+    },
+    "learning_set": {
+      "name": "Lernstand setzen",
+      "description": "Lernstand korrigieren oder übernehmen, z. B. bei der Umstellung.",
+      "fields": {
+        "factor": {
+          "name": "Faktor",
+          "description": "Gelernter Wirkungsgrad."
+        },
+        "clear_days": {
+          "name": "Klare Tage",
+          "description": "Anzahl bereits gelernter klarer Tage."
+        },
+        "last_clear_date": {
+          "name": "Letzter klarer Tag",
+          "description": "Datum des letzten klaren Tages (JJJJ-MM-TT)."
+        },
+        "history": {
+          "name": "Verlauf",
+          "description": "Liste der Tageswerte, z. B. [{\"d\": \"2026-10-19\", \"v\": 1.07, \"k\": false}]."
+        },
+        "reset": {
+          "name": "Zurücksetzen",
+          "description": "Vorher alles zurücksetzen."
+        }
+      }
+    }
+  }
+}
