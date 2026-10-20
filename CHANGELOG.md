@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.4.2 (2026-10-20)
+* Gesamtsensoren: minütliche Aktualisierung läuft im Event-Loop (Warnung „async_write_ha_state from a thread“ behoben).
+
 ## 0.4.1 (2026-10-20)
 * manifest.json: Schlüssel sortiert (hassfest).
 

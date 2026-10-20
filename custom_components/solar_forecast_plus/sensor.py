@@ -19,7 +19,7 @@ from homeassistant.components.sensor import (
 )
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import PERCENTAGE, UnitOfEnergy, UnitOfPower
-from homeassistant.core import HomeAssistant
+from homeassistant.core import HomeAssistant, callback
 from homeassistant.helpers.device_registry import DeviceEntryType, DeviceInfo
 from homeassistant.helpers.dispatcher import async_dispatcher_connect
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
@@ -557,10 +557,12 @@ class TotalSensorEntity(SensorEntity):
             )
         )
         self.async_on_remove(
-            async_track_utc_time_change(
-                self.hass, lambda _now: self.async_write_ha_state(), second=0
-            )
+            async_track_utc_time_change(self.hass, self._async_tick, second=0)
         )
+
+    @callback
+    def _async_tick(self, _now: datetime) -> None:
+        self.async_write_ha_state()
 
     @property
     def available(self) -> bool:
