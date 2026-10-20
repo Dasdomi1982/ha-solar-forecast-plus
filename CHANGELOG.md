@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.4.1 (2026-10-20)
+* manifest.json: Schlüssel sortiert (hassfest).
+
 ## 0.4.0 (2026-10-20)
 * **Korrektur im Tagesverlauf:** Der Ertrag bis jetzt wird alle 5 Minuten mit der
   Prognose verglichen; der Rest des Tages wird angepasst (abklingend zum Abend).
