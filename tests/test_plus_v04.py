@@ -332,3 +332,38 @@ async def test_two_entries_share_one_attached_learner(hass: HomeAssistant):
     assert learner.enabled
     total = hass.states.get("sensor.solar_forecast_plus_gesamt_heute")
     assert len(total.attributes["teile_kwh"]) == 2
+
+
+def test_seasonal_profiles():
+    from custom_components.solar_forecast_plus.learner import season_of
+
+    assert season_of(date(2026, 12, 1)) == "winter"
+    assert season_of(date(2026, 7, 1)) == "sommer"
+    assert season_of(date(2026, 10, 20)) == "uebergang"
+
+    state = LearningState()
+    forecast = [2, 3, 5, 6, 7, 7, 6, 5, 3, 2]
+    shaded = [0.8, 1.5, 5, 6, 7, 7, 6, 5, 3, 2]  # winter: low sun shaded in the morning
+    clean = list(forecast)  # summer: no shading
+    for d in range(1, 8):
+        update_profile(state, actual_bins=shaded, forecast_bins_kwh=forecast, weight=1.0, smoothing=0.2, day=date(2026, 12, d))
+        update_profile(state, actual_bins=clean, forecast_bins_kwh=forecast, weight=1.0, smoothing=0.2, day=date(2026, 7, d))
+    winter = profile_values(state, date(2026, 12, 20))
+    summer = profile_values(state, date(2026, 7, 20))
+    overall = profile_values(state)
+    assert winter[0] < overall[0] < summer[0]
+    assert summer[0] > 0.9
+    assert set(state.profile_seasons) == {"winter", "sommer"}
+    # a season without data uses the overall profile
+    assert profile_values(state, date(2026, 10, 1)) == overall
+
+
+def test_apply_corrections_with_profile_per_day():
+    raw = _estimate()
+    profiles = {DAY: [0.6] * 2 + [1.0] * 8, DAY + timedelta(days=1): None}
+    cor = apply_corrections(raw, profile=lambda d: profiles.get(d))
+    morning = datetime(2026, 6, 1, 6, 30, tzinfo=TZ)
+    assert cor.wh_period_15m[morning] < raw.wh_period_15m[morning]
+    assert cor.wh_days[DAY] == pytest.approx(raw.wh_days[DAY], rel=1e-6)
+    tomorrow_morning = morning + timedelta(days=1)
+    assert cor.wh_period_15m[tomorrow_morning] == raw.wh_period_15m[tomorrow_morning]

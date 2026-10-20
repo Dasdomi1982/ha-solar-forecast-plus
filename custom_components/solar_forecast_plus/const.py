@@ -81,6 +81,9 @@ LEARN_SEASON_PRIOR = 3.0
 PROFILE_MIN_WEIGHT = 5.0
 PROFILE_MIN_SHARE = 0.03
 PROFILE_RANGE = (0.5, 1.5)
+# Weight (equivalent days) of the overall profile when blended with the
+# profile of the current season.
+PROFILE_SEASON_PRIOR = 3.0
 # Only this many past days are requested from Open-Meteo (upstream: 92).
 PAST_DAYS = 7
 

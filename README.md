@@ -19,7 +19,7 @@ eigenen Anlage lernt.**
 | 🛡️ | **Robust bei Datenlücken** | Ein einzelner leerer Wert von Open-Meteo legt nicht mehr die ganze Prognose lahm |
 | 🧠 | **Lernt jeden Tag** | Auch trübe Tage zählen – gewichtet nach Bewölkung, klare Tage am stärksten |
 | 🍂 | **Faktor je Jahreszeit** | Eigener Wirkungsgrad je Monat (flache Herbstsonne ≠ Sommerhitze) |
-| 🌅 | **Tagesprofil** | Erkennt Verschattung morgens/abends und lernt die Dämpfung selbst |
+| 🌅 | **Tagesprofil je Jahreszeit** | Erkennt Verschattung morgens/abends – getrennt für Winter, Übergang und Sommer |
 | ⏱️ | **Korrektur im Tagesverlauf** | Vergleicht den Ertrag bis jetzt und korrigiert den Rest des Tages |
 | ➕ | **Gesamtwerte** | Summe aller Dachseiten als eigene Sensoren |
 | ☁️ | **Bewölkung von Open-Meteo** | Kein extra Wetter-Sensor nötig |
@@ -68,6 +68,9 @@ Gesamtwerte und lernt für alle Einträge.
 * **Tagesprofil:** Der Tag wird von Sonnenauf- bis -untergang in 10 Abschnitte
   geteilt. Aus dem Verlauf des echten Ertrags (Recorder) lernt Plus, ob morgens
   oder abends regelmäßig weniger kommt. Die Tagessumme bleibt dabei unverändert.
+  Neben dem Jahresprofil gibt es je ein Profil für **Winter** (Nov–Feb),
+  **Übergang** (Mär/Apr, Sep/Okt) und **Sommer** (Mai–Aug) – Verschattung bei
+  flacher Wintersonne wird so getrennt gelernt.
 * **Tagesverlauf:** Alle 5 Minuten wird der Ertrag bis jetzt mit der Prognose bis
   jetzt verglichen. Die Abweichung wirkt stark auf die nächsten Stunden und
   klingt zum Abend hin ab. Morgen bleibt unberührt.
@@ -89,7 +92,7 @@ Gesamtwerte und lernt für alle Einträge.
 | `sensor.solar_forecast_plus_gesamt_heute_rest` | Rest von heute |
 | `sensor.solar_forecast_plus_gesamt_morgen` | Prognose morgen |
 | `sensor.solar_forecast_plus_gesamt_leistung` | Leistung jetzt |
-| `sensor.solar_forecast_plus_pv_faktor` | Gelernter Wirkungsgrad (Attribute: Saisonfaktor, Faktor je Monat, Tagesprofil, gelernte Dämpfung morgens/abends) |
+| `sensor.solar_forecast_plus_pv_faktor` | Gelernter Wirkungsgrad (Attribute: Saisonfaktor, Faktor je Monat, Tagesprofil gesamt und je Jahreszeit, gelernte Dämpfung morgens/abends) |
 | `sensor.solar_forecast_plus_ertrag_zu_prognose` | Ist zu Prognose des letzten Tages, Gewicht, Bewölkungsquelle, Abweichung heute, Verlauf |
 | `sensor.solar_forecast_plus_klare_tage` | Anzahl klarer Tage, gewichtete Tage |
 | `sensor.solar_forecast_plus_treffsicherheit` | Mittlere Abweichung der Vortagesprognose in % (30 Tage), Vergleich ohne Lernen und mit Vergleichsmodell |

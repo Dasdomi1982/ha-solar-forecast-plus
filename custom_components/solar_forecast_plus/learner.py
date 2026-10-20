@@ -55,6 +55,7 @@ from .const import (
     PROFILE_MIN_SHARE,
     PROFILE_MIN_WEIGHT,
     PROFILE_RANGE,
+    PROFILE_SEASON_PRIOR,
     SIGNAL_LEARNING_UPDATED,
 )
 from .corrections import (
@@ -66,6 +67,7 @@ from .corrections import (
     intraday_from,
 )
 
+SEASONS = ("winter", "uebergang", "sommer")
 STORAGE_VERSION = 1
 STORAGE_KEY = f"{DOMAIN}.learning"
 INTRADAY_INTERVAL = timedelta(minutes=5)
@@ -97,6 +99,7 @@ class LearningState:
         default_factory=lambda: [{"r": 1.0, "w": 0.0} for _ in range(PROFILE_BINS)]
     )
     profile_days: float = 0.0
+    profile_seasons: dict[str, list[dict[str, float]]] = field(default_factory=dict)
     accuracy: list[dict[str, Any]] = field(default_factory=list)
     pending: dict[str, Any] | None = None
 
@@ -114,6 +117,13 @@ class LearningState:
             state.monthly = {}
         if not isinstance(state.profile, list) or len(state.profile) != PROFILE_BINS:
             state.profile = [{"r": 1.0, "w": 0.0} for _ in range(PROFILE_BINS)]
+        if not isinstance(state.profile_seasons, dict):
+            state.profile_seasons = {}
+        state.profile_seasons = {
+            k: v
+            for k, v in state.profile_seasons.items()
+            if k in SEASONS and isinstance(v, list) and len(v) == PROFILE_BINS
+        }
         if not isinstance(state.accuracy, list):
             state.accuracy = []
         # Migration from 0.3: clear days count as full-weight days.
@@ -242,6 +252,30 @@ def seasonal_factor(state: LearningState, day: date) -> float | None:
     )
 
 
+def season_of(day: date) -> str:
+    """Season by sun height: winter (Nov-Feb), transition, summer (May-Aug)."""
+    if day.month in (11, 12, 1, 2):
+        return "winter"
+    if day.month in (5, 6, 7, 8):
+        return "sommer"
+    return "uebergang"
+
+
+def _empty_profile() -> list[dict[str, float]]:
+    return [{"r": 1.0, "w": 0.0} for _ in range(PROFILE_BINS)]
+
+
+def _learn_bins(
+    entries: list[dict[str, float]], rel: dict[int, float], weight: float, smoothing: float
+) -> None:
+    for i, value in rel.items():
+        entry = entries[i]
+        entry["r"] = round(
+            value if entry["w"] <= 0 else _ema(entry["r"], value, smoothing * weight), 4
+        )
+        entry["w"] = round(entry["w"] + weight, 3)
+
+
 def update_profile(
     state: LearningState,
     *,
@@ -249,36 +283,52 @@ def update_profile(
     forecast_bins_kwh: list[float],
     weight: float,
     smoothing: float,
+    day: date | None = None,
 ) -> bool:
-    """Learn the relative deviation per daylight bin (pure function)."""
+    """Learn the relative deviation per daylight bin (pure function).
+
+    The overall profile and, if ``day`` is given, the profile of its season
+    are updated.
+    """
     actual_total = sum(actual_bins)
     forecast_total = sum(forecast_bins_kwh)
     if weight <= 0 or actual_total <= 0 or forecast_total < LEARN_MIN_FORECAST_KWH:
         return False
     day_ratio = actual_total / forecast_total
-    learned = False
-    for i, (a, f) in enumerate(zip(actual_bins, forecast_bins_kwh)):
-        if f < PROFILE_MIN_SHARE * forecast_total:
-            continue
-        rel = min(max((a / f) / day_ratio, 0.2), 2.0)
-        entry = state.profile[i]
-        entry["r"] = round(
-            rel if entry["w"] <= 0 else _ema(entry["r"], rel, smoothing * weight), 4
-        )
-        entry["w"] = round(entry["w"] + weight, 3)
-        learned = True
-    if learned:
-        state.profile_days = round(state.profile_days + weight, 3)
-    return learned
+    rel = {
+        i: min(max((a / f) / day_ratio, 0.2), 2.0)
+        for i, (a, f) in enumerate(zip(actual_bins, forecast_bins_kwh))
+        if f >= PROFILE_MIN_SHARE * forecast_total
+    }
+    if not rel:
+        return False
+    _learn_bins(state.profile, rel, weight, smoothing)
+    state.profile_days = round(state.profile_days + weight, 3)
+    if day is not None:
+        season = state.profile_seasons.setdefault(season_of(day), _empty_profile())
+        _learn_bins(season, rel, weight, smoothing)
+    return True
 
 
-def profile_values(state: LearningState) -> list[float] | None:
-    """Applicable profile (bins without enough data stay neutral)."""
+def profile_values(state: LearningState, day: date | None = None) -> list[float] | None:
+    """Applicable profile (bins without enough data stay neutral).
+
+    With ``day`` the profile of its season is blended in: the overall value
+    counts like PROFILE_SEASON_PRIOR days, so the seasonal profile takes over
+    the more days of that season have been learned.
+    """
     low, high = PROFILE_RANGE
-    values = [
-        min(max(e["r"], low), high) if e["w"] >= PROFILE_MIN_WEIGHT else 1.0
-        for e in state.profile
-    ]
+    season = state.profile_seasons.get(season_of(day)) if day is not None else None
+    values = []
+    for i, e in enumerate(state.profile):
+        if e["w"] < PROFILE_MIN_WEIGHT:
+            values.append(1.0)
+            continue
+        r = e["r"]
+        if season is not None and season[i]["w"] > 0:
+            ws = season[i]["w"]
+            r = (ws * season[i]["r"] + PROFILE_SEASON_PRIOR * r) / (ws + PROFILE_SEASON_PRIOR)
+        values.append(round(min(max(r, low), high), 4))
     if all(v == 1.0 for v in values):
         return None
     return values
@@ -446,8 +496,12 @@ class PvLearner:
         return None
 
     def applied_profile(self) -> list[float] | None:
+        """Profile applied today (for display and change detection)."""
+        return self.applied_profile_for(dt_util.now().date())
+
+    def applied_profile_for(self, day: date) -> list[float] | None:
         if self.auto_apply:
-            return profile_values(self.state)
+            return profile_values(self.state, day)
         return None
 
     # -- helpers -------------------------------------------------------------
@@ -604,6 +658,7 @@ class PvLearner:
                         ),
                         weight=result.weight,
                         smoothing=float(self.option(CONF_LEARN_SMOOTHING)),
+                        day=day,
                     )
 
         # accuracy of yesterday's day-ahead forecast, then a new day-ahead

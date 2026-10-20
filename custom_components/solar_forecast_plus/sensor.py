@@ -39,7 +39,7 @@ from .const import (
     SIGNAL_FORECAST_UPDATED,
     SIGNAL_LEARNING_UPDATED,
 )
-from .learner import accuracy_summary, profile_values, seasonal_factor
+from .learner import accuracy_summary, profile_values, season_of, seasonal_factor
 from .coordinator import OpenMeteoSolarForecastDataUpdateCoordinator
 
 
@@ -448,7 +448,7 @@ class LearningSensorEntity(SensorEntity):
         state = learner.state
         today = dt_util.now().date()
         if self._kind == "learned_factor":
-            profile = profile_values(state)
+            profile = profile_values(state, today)
             return {
                 "letzter_klarer_tag": state.last_clear_date,
                 "klare_tage": state.clear_days,
@@ -462,6 +462,15 @@ class LearningSensorEntity(SensorEntity):
                 },
                 "tagesprofil": [round(e["r"], 3) for e in state.profile],
                 "tagesprofil_tage": state.profile_days,
+                "jahreszeit": season_of(today),
+                "tagesprofil_jahreszeit": {
+                    name: [round(e["r"], 3) for e in entries]
+                    for name, entries in state.profile_seasons.items()
+                },
+                "tagesprofil_jahreszeit_tage": {
+                    name: round(max(e["w"] for e in entries), 2)
+                    for name, entries in state.profile_seasons.items()
+                },
                 "tagesprofil_aktiv": learner.applied_profile() is not None,
                 "daempfung_morgens": _damping(profile, morning=True),
                 "daempfung_abends": _damping(profile, morning=False),

@@ -104,21 +104,40 @@ def apply_corrections(
     raw: Estimate,
     *,
     day_factor: Callable[[date], float] | None = None,
-    profile: list[float] | None = None,
+    profile: list[float] | Callable[[date], list[float] | None] | None = None,
     intraday: Intraday | None = None,
 ) -> Estimate:
-    """Return a corrected copy of ``raw``."""
+    """Return a corrected copy of ``raw``.
+
+    ``profile`` is one list for all days or a function returning the profile
+    of a day (seasonal profile), None meaning "no profile".
+    """
     if day_factor is None and profile is None and intraday is None:
         return raw
 
+    if profile is None or callable(profile):
+        profile_of = profile
+    else:
+        constant = profile
+        profile_of = lambda _day: constant  # noqa: E731
+    day_profiles: dict[date, list[float] | None] = {}
+
+    def profile_for(day: date) -> list[float] | None:
+        if profile_of is None:
+            return None
+        if day not in day_profiles:
+            day_profiles[day] = profile_of(day)
+        return day_profiles[day]
+
     profile_norm: dict[date, float] = {}
-    if profile is not None:
+    if profile_of is not None:
         # Normalise per day so the profile only shifts energy within the day.
         weighted: dict[date, float] = {}
         plain: dict[date, float] = {}
         for start, wh in raw.wh_period_15m.items():
+            day_profile = profile_for(start.date())
             b = daylight_bin(start, raw.daylight)
-            p = profile[b] if b is not None else 1.0
+            p = day_profile[b] if (b is not None and day_profile) else 1.0
             weighted[start.date()] = weighted.get(start.date(), 0.0) + wh * p
             plain[start.date()] = plain.get(start.date(), 0.0) + wh
         for day, value in weighted.items():
@@ -132,10 +151,11 @@ def apply_corrections(
         m = 1.0
         if day_factor is not None:
             m *= day_factor(start.date())
-        if profile is not None:
+        day_profile = profile_for(start.date())
+        if day_profile:
             b = daylight_bin(start, raw.daylight)
             if b is not None:
-                m *= profile[b] * profile_norm.get(start.date(), 1.0)
+                m *= day_profile[b] * profile_norm.get(start.date(), 1.0)
         if intraday is not None:
             m *= intraday.multiplier(start)
         cache[start] = m

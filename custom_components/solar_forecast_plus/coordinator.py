@@ -494,7 +494,7 @@ class OpenMeteoSolarForecastDataUpdateCoordinator(DataUpdateCoordinator[Estimate
                 applied = learner.applied_factor_for(day)
                 return applied / configured if applied is not None else 1.0
 
-        profile = learner.applied_profile()
+        profile = learner.applied_profile_for if learner.auto_apply else None
         base = apply_corrections(raw, day_factor=day_factor, profile=profile)
         intraday = learner.intraday
         if intraday is None:

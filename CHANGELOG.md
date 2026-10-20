@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.5.0 (2026-10-20)
+* **Tagesprofil je Jahreszeit:** Neben dem Jahresprofil lernt Plus je ein Profil für
+  Winter (Nov–Feb), Übergang (Mär/Apr, Sep/Okt) und Sommer (Mai–Aug). Verschattung bei
+  flacher Wintersonne wird so getrennt gelernt. Das Jahresprofil zählt beim Mischen wie
+  3 Tage; mit mehr Tagen der Jahreszeit übernimmt deren Profil.
+* Neue Attribute am PV-Faktor-Sensor: `jahreszeit`, `tagesprofil_jahreszeit`,
+  `tagesprofil_jahreszeit_tage`; die gelernte Dämpfung bezieht sich auf die aktuelle Jahreszeit.
+
 ## 0.4.3 (2026-10-20)
 * Lernen: Beim Start von Home Assistant konnte ein zweiter Eintrag den Lern-Teil ersetzen; dann liefen Abendauswertung und Tageskorrektur nicht. Behoben.
 
