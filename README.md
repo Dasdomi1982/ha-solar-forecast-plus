@@ -85,7 +85,7 @@ Gesamtwerte und lernt für alle Einträge.
 
 | Sensor | Inhalt |
 |---|---|
-| `sensor.solar_forecast_plus_gesamt_heute` | Prognose heute, alle Seiten (Attribute: Anteile, ohne Korrektur, Stundenwerte, Bewölkung) |
+| `sensor.solar_forecast_plus_gesamt_heute` | Prognose heute, alle Seiten (Attribute: Anteile je Seite, Wert ohne Korrektur, Stundenwerte, Bewölkung) |
 | `sensor.solar_forecast_plus_gesamt_heute_rest` | Rest von heute |
 | `sensor.solar_forecast_plus_gesamt_morgen` | Prognose morgen |
 | `sensor.solar_forecast_plus_gesamt_leistung` | Leistung jetzt |

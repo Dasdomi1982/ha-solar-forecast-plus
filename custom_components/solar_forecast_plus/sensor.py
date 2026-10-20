@@ -587,14 +587,23 @@ class TotalSensorEntity(SensorEntity):
     @property
     def extra_state_attributes(self) -> dict[str, Any] | None:
         coordinators = self._coordinators()
-        parts = {
-            c.config_entry.title: round(self._value(c.data), 1) for c in coordinators
+        if self._kind == "total_power_now":
+            return {
+                "teile_w": {
+                    c.config_entry.title: round(self._value(c.data)) for c in coordinators
+                }
+            }
+        attrs: dict[str, Any] = {
+            "teile_kwh": {
+                c.config_entry.title: round(self._value(c.data) / 1000, 2)
+                for c in coordinators
+            },
+            "ohne_korrektur_kwh": round(
+                sum(self._value(c.raw) for c in coordinators if c.raw is not None)
+                / 1000,
+                2,
+            ),
         }
-        attrs: dict[str, Any] = {"teile": parts}
-        if self._kind in ("total_today", "total_today_remaining", "total_tomorrow"):
-            attrs["ohne_korrektur"] = round(
-                sum(self._value(c.raw) for c in coordinators if c.raw is not None), 1
-            )
         if self._kind in ("total_today", "total_tomorrow"):
             target = dt_util.now().date()
             if self._kind == "total_tomorrow":
