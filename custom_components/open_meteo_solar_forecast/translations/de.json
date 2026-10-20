@@ -200,7 +200,7 @@
         },
         "history": {
           "name": "Verlauf",
-          "description": "Liste der Tageswerte, z. B. [{\"d\": \"2026-10-19\", \"v\": 1.07, \"k\": false}]."
+          "description": "Liste der Tageswerte mit d (Datum), v (Ist/Prognose) und k (klar ja/nein)."
         },
         "reset": {
           "name": "Zurücksetzen",

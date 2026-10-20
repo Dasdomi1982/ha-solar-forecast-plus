@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.2.1 (2026-10-20)
+* Übersetzungen: Beschreibung des Felds „history“ ohne geschweifte Klammern (hassfest-Fehler).
+
 ## 0.2.0 (2026-10-19)
 Basis: ha-open-meteo-solar-forecast 0.1.33 / open-meteo-solar-forecast 0.1.32.
 

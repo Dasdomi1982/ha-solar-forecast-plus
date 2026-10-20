@@ -136,7 +136,7 @@
         },
         "history": {
           "name": "History",
-          "description": "List of daily values like [{\"d\": \"2026-10-19\", \"v\": 1.07, \"k\": false}]."
+          "description": "List of daily values with d (date), v (actual/forecast) and k (clear true/false)."
         },
         "reset": {
           "name": "Reset",
