@@ -367,3 +367,13 @@ def test_apply_corrections_with_profile_per_day():
     assert cor.wh_days[DAY] == pytest.approx(raw.wh_days[DAY], rel=1e-6)
     tomorrow_morning = morning + timedelta(days=1)
     assert cor.wh_period_15m[tomorrow_morning] == raw.wh_period_15m[tomorrow_morning]
+
+
+async def test_total_sensor_shows_model(hass: HomeAssistant):
+    entry = _entry({**BASE_OPTIONS, **LEARN_OPTIONS})
+    entry.add_to_hass(hass)
+    with _patch_api(_fake_response(days=8)):
+        assert await hass.config_entries.async_setup(entry.entry_id)
+        await hass.async_block_till_done()
+    state = hass.states.get("sensor.solar_forecast_plus_gesamt_heute")
+    assert state.attributes["modell"] == "icon_seamless"

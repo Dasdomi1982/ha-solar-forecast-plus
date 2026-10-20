@@ -35,6 +35,7 @@ from .const import (
     ATTR_WH_PERIOD,
     ATTR_WH_PERIOD_15M,
     CONF_LEARN_ENABLED,
+    CONF_MODEL,
     DOMAIN,
     SIGNAL_FORECAST_UPDATED,
     SIGNAL_LEARNING_UPDATED,
@@ -596,17 +597,23 @@ class TotalSensorEntity(SensorEntity):
     @property
     def extra_state_attributes(self) -> dict[str, Any] | None:
         coordinators = self._coordinators()
+        models = sorted(
+            {str(c.config_entry.options.get(CONF_MODEL) or "best_match") for c in coordinators}
+        )
+        model = ", ".join(models) if models else None
         if self._kind == "total_power_now":
             return {
                 "teile_w": {
                     c.config_entry.title: round(self._value(c.data)) for c in coordinators
-                }
+                },
+                "modell": model,
             }
         attrs: dict[str, Any] = {
             "teile_kwh": {
                 c.config_entry.title: round(self._value(c.data) / 1000, 2)
                 for c in coordinators
             },
+            "modell": model,
             "ohne_korrektur_kwh": round(
                 sum(self._value(c.raw) for c in coordinators if c.raw is not None)
                 / 1000,

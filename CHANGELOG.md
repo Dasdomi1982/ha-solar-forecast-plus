@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.5.1 (2026-10-20)
+* Gesamtsensoren: neues Attribut `modell` (verwendetes Open-Meteo-Wettermodell).
+
 ## 0.5.0 (2026-10-20)
 * **Tagesprofil je Jahreszeit:** Neben dem Jahresprofil lernt Plus je ein Profil für
   Winter (Nov–Feb), Übergang (Mär/Apr, Sep/Okt) und Sommer (Mai–Aug). Verschattung bei
