@@ -275,3 +275,27 @@ async def test_intraday_changes_remaining_today(hass: HomeAssistant):
     assert coordinator.data.day_production(today) < est.day_production(today)
     # the raw forecast used for learning is untouched
     assert coordinator.raw is est
+
+
+async def test_intraday_timer_runs(hass: HomeAssistant):
+    from homeassistant.util import dt as dt_util
+    from pytest_homeassistant_custom_component.common import async_fire_time_changed
+
+    entry = _entry({**BASE_OPTIONS, **LEARN_OPTIONS, "learn_auto_apply": False})
+    entry.add_to_hass(hass)
+    with _patch_api(_fake_response(days=8)):
+        assert await hass.config_entries.async_setup(entry.entry_id)
+        await hass.async_block_till_done()
+    learner = hass.data[DOMAIN]["learner"]
+    hass.states.async_set("sensor.pv_daily", "0.0", {"unit_of_measurement": "kWh"})
+    seen = []
+    orig = learner.async_update_intraday
+
+    def spy(now=None):
+        seen.append(now)
+        return orig(now)
+
+    learner.async_update_intraday = spy
+    async_fire_time_changed(hass, dt_util.utcnow() + timedelta(minutes=6))
+    await hass.async_block_till_done()
+    assert seen
