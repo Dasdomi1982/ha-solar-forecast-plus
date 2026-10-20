@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.4.3 (2026-10-20)
+* Lernen: Beim Start von Home Assistant konnte ein zweiter Eintrag den Lern-Teil ersetzen; dann liefen Abendauswertung und Tageskorrektur nicht. Behoben.
+
 ## 0.4.2 (2026-10-20)
 * Gesamtsensoren: minütliche Aktualisierung läuft im Event-Loop (Thread-Warnung behoben); Attribute `teile_kwh` und `ohne_korrektur_kwh` in kWh.
 

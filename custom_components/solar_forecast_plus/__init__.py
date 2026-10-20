@@ -138,12 +138,17 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         horizon_map = horizon_maps
 
     domain_data = hass.data.setdefault(DOMAIN, {})
+    # Plus: entries are set up concurrently. Create the shared learner
+    # synchronously (before the first await) so every entry gets the same one.
     learner: PvLearner | None = domain_data.get("learner")
     if learner is None:
         learner = PvLearner(hass)
-        await learner.async_load()
         domain_data["learner"] = learner
+        domain_data["learner_loaded"] = hass.async_create_task(
+            learner.async_load(), "solar_forecast_plus learner load"
+        )
         _async_register_learning_services(hass)
+    await domain_data["learner_loaded"]
     if entry.options.get(CONF_LEARN_ENABLED):
         if learner.entry is not None and learner.entry.entry_id != entry.entry_id:
             LOGGER.warning(

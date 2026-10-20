@@ -299,3 +299,36 @@ async def test_intraday_timer_runs(hass: HomeAssistant):
     async_fire_time_changed(hass, dt_util.utcnow() + timedelta(minutes=6))
     await hass.async_block_till_done()
     assert seen
+
+
+async def test_two_entries_share_one_attached_learner(hass: HomeAssistant):
+    """Entries are set up concurrently; the learner must not be replaced."""
+    west = _entry({**BASE_OPTIONS, **LEARN_OPTIONS})
+    from pytest_homeassistant_custom_component.common import MockConfigEntry
+
+    south = MockConfigEntry(
+        domain=DOMAIN,
+        title="Süd",
+        data={"latitude": 50.75, "longitude": 7.85},
+        options={**BASE_OPTIONS, "azimuth": 163, "modules_power": 2790},
+    )
+    west.add_to_hass(hass)
+    south.add_to_hass(hass)
+    import asyncio
+    from unittest.mock import patch
+    from custom_components.solar_forecast_plus.learner import PvLearner
+
+    original_load = PvLearner.async_load
+
+    async def slow_load(self):
+        await asyncio.sleep(0.05)  # storage access yields to the event loop
+        await original_load(self)
+
+    with _patch_api(_fake_response(days=8)), patch.object(PvLearner, "async_load", slow_load):
+        assert await hass.config_entries.async_setup(west.entry_id)
+        await hass.async_block_till_done()
+    learner = hass.data[DOMAIN]["learner"]
+    assert learner.entry is not None and learner.entry.entry_id == west.entry_id
+    assert learner.enabled
+    total = hass.states.get("sensor.solar_forecast_plus_gesamt_heute")
+    assert len(total.attributes["teile_kwh"]) == 2
