@@ -61,6 +61,12 @@ async def async_get_config_entry_diagnostics(
             "snow_gaps_last_fetch": getattr(coordinator.forecast, "last_snow_gaps", None),
             "effective_efficiency": coordinator.effective_efficiency,
             "configured_efficiency": coordinator.configured_efficiency,
+            "raw_today_wh": coordinator.raw.energy_production_today if coordinator.raw else None,
+            "intraday": (
+                repr(hass.data[DOMAIN]["learner"].intraday)
+                if "learner" in hass.data[DOMAIN]
+                else None
+            ),
             "learning": (
                 hass.data[DOMAIN]["learner"].state.as_dict()
                 if "learner" in hass.data[DOMAIN]

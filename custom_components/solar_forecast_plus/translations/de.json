@@ -25,25 +25,29 @@
         "description": "Einstellungen für PV-Anlage {array_number}. Aktiviere „Weitere Anlage hinzufügen“, um eine weitere Anlage zu konfigurieren."
       },
       "learning": {
-        "title": "Selbstlernender Wirkungsgrad",
-        "description": "Optional: Jeden Abend wird der echte PV-Ertrag mit der Prognose verglichen und an klaren Tagen der Wirkungsgrad gelernt. Nur in einem Eintrag aktivieren – er gilt für alle Einträge dieser Integration.",
+        "title": "Anlagen-Eintrag: Gesamtwerte und Lernen",
+        "description": "Optional, nur in EINEM Eintrag aktivieren: Dieser Eintrag liefert dann Gesamtsensoren über alle Einträge und lernt aus dem echten PV-Ertrag (Wirkungsgrad je Jahreszeit, Tagesprofil, Korrektur des restlichen Tages, Treffsicherheit).",
         "data": {
-          "learn_enabled": "Lernen aktivieren",
+          "learn_enabled": "Anlagen-Eintrag (Gesamtwerte + Lernen)",
           "learn_actual_entity": "Tatsächlicher PV-Tagesertrag",
-          "learn_cloud_entity": "Bewölkung im Tagesmittel",
+          "learn_cloud_entity": "Bewölkung im Tagesmittel (optional)",
           "learn_cloud_threshold": "Schwelle für klare Tage",
           "learn_smoothing": "Glättung",
-          "learn_min_days": "Klare Tage bis zur Anwendung",
-          "learn_auto_apply": "Gelernten Faktor automatisch anwenden",
+          "learn_min_days": "Tage bis zur Anwendung",
+          "learn_auto_apply": "Gelerntes automatisch anwenden",
+          "learn_intraday": "Restlichen Tag korrigieren",
+          "learn_compare_model": "Vergleichs-Wettermodell",
           "learn_sunset_offset": "Auswertung nach Sonnenuntergang"
         },
         "data_description": {
-          "learn_actual_entity": "Energie-Sensor mit dem heutigen PV-Gesamtertrag, der täglich zurückgesetzt wird (z. B. Tages-PV-Energie des Wechselrichters).",
-          "learn_cloud_entity": "Sensor mit der mittleren Bewölkung des Tages in %. Gelernt wird nur an Tagen unter der Schwelle.",
-          "learn_cloud_threshold": "Tage mit weniger Bewölkung gelten als klar.",
+          "learn_actual_entity": "Energie-Sensor mit dem PV-Ertrag des Tages, der täglich auf 0 zurückgesetzt wird (z. B. Tages-PV-Energie des Wechselrichters).",
+          "learn_cloud_entity": "Sensor mit der mittleren Bewölkung des Tages in %. Leer: Es wird die Bewölkung von Open-Meteo zwischen Sonnenauf- und -untergang verwendet.",
+          "learn_cloud_threshold": "Bis zu dieser Bewölkung zählt ein Tag voll, trübere Tage zählen weniger.",
           "learn_smoothing": "Gewicht eines neuen klaren Tages (0,2 = 20 % neu, 80 % bisher).",
-          "learn_min_days": "So viele klare Tage braucht es, bis der gelernte Faktor als verlässlich gilt.",
-          "learn_auto_apply": "Sobald genug klare Tage gesammelt sind, ersetzt der gelernte Faktor den eingestellten Wirkungsgrad aller Einträge.",
+          "learn_min_days": "Gewichtete Tage (ein klarer Tag zählt 1), bis der gelernte Faktor als verlässlich gilt.",
+          "learn_auto_apply": "Nach dem Einlernen korrigieren Jahreszeit-Faktor und Tagesprofil die Prognose aller Einträge.",
+          "learn_intraday": "Vergleicht den bisherigen Ertrag mit der Prognose und korrigiert den Rest des Tages.",
+          "learn_compare_model": "Open-Meteo-Modell, das einmal täglich zum Vergleich gerechnet wird (z. B. best_match). Leer = aus.",
           "learn_sunset_offset": "Minuten nach Sonnenuntergang, zu denen der Tag ausgewertet wird."
         }
       }
@@ -120,6 +124,21 @@
       },
       "clear_days": {
         "name": "Gelernte klare Tage"
+      },
+      "accuracy": {
+        "name": "Prognose-Abweichung (30 Tage)"
+      },
+      "total_today": {
+        "name": "Gesamt heute"
+      },
+      "total_today_remaining": {
+        "name": "Gesamt heute verbleibend"
+      },
+      "total_tomorrow": {
+        "name": "Gesamt morgen"
+      },
+      "total_power_now": {
+        "name": "Gesamt Leistung jetzt"
       }
     }
   },
@@ -153,25 +172,29 @@
         "description": "Einstellungen für PV-Anlage {array_number}. Aktiviere „Weitere Anlage hinzufügen“, um eine weitere Anlage zu konfigurieren."
       },
       "learning": {
-        "title": "Selbstlernender Wirkungsgrad",
-        "description": "Optional: Jeden Abend wird der echte PV-Ertrag mit der Prognose verglichen und an klaren Tagen der Wirkungsgrad gelernt. Nur in einem Eintrag aktivieren – er gilt für alle Einträge dieser Integration.",
+        "title": "Anlagen-Eintrag: Gesamtwerte und Lernen",
+        "description": "Optional, nur in EINEM Eintrag aktivieren: Dieser Eintrag liefert dann Gesamtsensoren über alle Einträge und lernt aus dem echten PV-Ertrag (Wirkungsgrad je Jahreszeit, Tagesprofil, Korrektur des restlichen Tages, Treffsicherheit).",
         "data": {
-          "learn_enabled": "Lernen aktivieren",
+          "learn_enabled": "Anlagen-Eintrag (Gesamtwerte + Lernen)",
           "learn_actual_entity": "Tatsächlicher PV-Tagesertrag",
-          "learn_cloud_entity": "Bewölkung im Tagesmittel",
+          "learn_cloud_entity": "Bewölkung im Tagesmittel (optional)",
           "learn_cloud_threshold": "Schwelle für klare Tage",
           "learn_smoothing": "Glättung",
-          "learn_min_days": "Klare Tage bis zur Anwendung",
-          "learn_auto_apply": "Gelernten Faktor automatisch anwenden",
+          "learn_min_days": "Tage bis zur Anwendung",
+          "learn_auto_apply": "Gelerntes automatisch anwenden",
+          "learn_intraday": "Restlichen Tag korrigieren",
+          "learn_compare_model": "Vergleichs-Wettermodell",
           "learn_sunset_offset": "Auswertung nach Sonnenuntergang"
         },
         "data_description": {
-          "learn_actual_entity": "Energie-Sensor mit dem heutigen PV-Gesamtertrag, der täglich zurückgesetzt wird (z. B. Tages-PV-Energie des Wechselrichters).",
-          "learn_cloud_entity": "Sensor mit der mittleren Bewölkung des Tages in %. Gelernt wird nur an Tagen unter der Schwelle.",
-          "learn_cloud_threshold": "Tage mit weniger Bewölkung gelten als klar.",
+          "learn_actual_entity": "Energie-Sensor mit dem PV-Ertrag des Tages, der täglich auf 0 zurückgesetzt wird (z. B. Tages-PV-Energie des Wechselrichters).",
+          "learn_cloud_entity": "Sensor mit der mittleren Bewölkung des Tages in %. Leer: Es wird die Bewölkung von Open-Meteo zwischen Sonnenauf- und -untergang verwendet.",
+          "learn_cloud_threshold": "Bis zu dieser Bewölkung zählt ein Tag voll, trübere Tage zählen weniger.",
           "learn_smoothing": "Gewicht eines neuen klaren Tages (0,2 = 20 % neu, 80 % bisher).",
-          "learn_min_days": "So viele klare Tage braucht es, bis der gelernte Faktor als verlässlich gilt.",
-          "learn_auto_apply": "Sobald genug klare Tage gesammelt sind, ersetzt der gelernte Faktor den eingestellten Wirkungsgrad aller Einträge.",
+          "learn_min_days": "Gewichtete Tage (ein klarer Tag zählt 1), bis der gelernte Faktor als verlässlich gilt.",
+          "learn_auto_apply": "Nach dem Einlernen korrigieren Jahreszeit-Faktor und Tagesprofil die Prognose aller Einträge.",
+          "learn_intraday": "Vergleicht den bisherigen Ertrag mit der Prognose und korrigiert den Rest des Tages.",
+          "learn_compare_model": "Open-Meteo-Modell, das einmal täglich zum Vergleich gerechnet wird (z. B. best_match). Leer = aus.",
           "learn_sunset_offset": "Minuten nach Sonnenuntergang, zu denen der Tag ausgewertet wird."
         }
       }

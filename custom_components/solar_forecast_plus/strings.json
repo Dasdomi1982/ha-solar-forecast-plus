@@ -48,25 +48,29 @@
         }
       },
       "learning": {
-        "title": "Self-learning efficiency factor",
-        "description": "Optional: compare the actual PV yield with the forecast every evening and learn the efficiency factor from clear days. Enable it in one entry only; it covers all entries of this integration.",
+        "title": "Plant entry: totals and self-learning",
+        "description": "Optional, enable in ONE entry only: this entry then provides total sensors for all entries and learns from the actual PV yield (efficiency per season, time-of-day profile, correction of the rest of today, accuracy statistics).",
         "data": {
-          "learn_enabled": "Enable learning",
+          "learn_enabled": "Plant entry (totals + learning)",
           "learn_actual_entity": "Actual daily PV yield",
-          "learn_cloud_entity": "Daily cloud cover",
+          "learn_cloud_entity": "Daily cloud cover (optional)",
           "learn_cloud_threshold": "Clear-day threshold",
           "learn_smoothing": "Smoothing",
-          "learn_min_days": "Clear days before applying",
-          "learn_auto_apply": "Apply learned factor automatically",
+          "learn_min_days": "Days before applying",
+          "learn_auto_apply": "Apply learned corrections automatically",
+          "learn_intraday": "Correct the rest of today",
+          "learn_compare_model": "Comparison weather model",
           "learn_sunset_offset": "Evaluate after sunset"
         },
         "data_description": {
           "learn_actual_entity": "Energy sensor of today's total PV yield that resets every day (e.g. daily PV energy of the inverter).",
-          "learn_cloud_entity": "Sensor with the average cloud cover of the day in %. Only days below the threshold are learned from.",
-          "learn_cloud_threshold": "Days with less cloud cover than this count as clear.",
+          "learn_cloud_entity": "Sensor with the average cloud cover of the day in %. Empty: the cloud cover of Open-Meteo between sunrise and sunset is used.",
+          "learn_cloud_threshold": "Up to this cloud cover a day counts fully; cloudier days count less.",
           "learn_smoothing": "Weight of a new clear day (0.2 = 20 % new, 80 % previous).",
-          "learn_min_days": "Number of clear days needed before the learned factor is considered reliable.",
-          "learn_auto_apply": "Once enough clear days are collected, the learned factor replaces the configured efficiency factor of all entries.",
+          "learn_min_days": "Weighted days (a clear day counts 1) before the learned factor is considered reliable.",
+          "learn_auto_apply": "Once learned, the seasonal factor and the time-of-day profile correct the forecast of all entries.",
+          "learn_intraday": "Compares the actual yield so far with the forecast and corrects the rest of today.",
+          "learn_compare_model": "Open-Meteo model forecast once a day for comparison (e.g. best_match). Empty = off.",
           "learn_sunset_offset": "Minutes after sunset when the day is evaluated."
         }
       }
@@ -129,25 +133,29 @@
         }
       },
       "learning": {
-        "title": "Self-learning efficiency factor",
-        "description": "Optional: compare the actual PV yield with the forecast every evening and learn the efficiency factor from clear days. Enable it in one entry only; it covers all entries of this integration.",
+        "title": "Plant entry: totals and self-learning",
+        "description": "Optional, enable in ONE entry only: this entry then provides total sensors for all entries and learns from the actual PV yield (efficiency per season, time-of-day profile, correction of the rest of today, accuracy statistics).",
         "data": {
-          "learn_enabled": "Enable learning",
+          "learn_enabled": "Plant entry (totals + learning)",
           "learn_actual_entity": "Actual daily PV yield",
-          "learn_cloud_entity": "Daily cloud cover",
+          "learn_cloud_entity": "Daily cloud cover (optional)",
           "learn_cloud_threshold": "Clear-day threshold",
           "learn_smoothing": "Smoothing",
-          "learn_min_days": "Clear days before applying",
-          "learn_auto_apply": "Apply learned factor automatically",
+          "learn_min_days": "Days before applying",
+          "learn_auto_apply": "Apply learned corrections automatically",
+          "learn_intraday": "Correct the rest of today",
+          "learn_compare_model": "Comparison weather model",
           "learn_sunset_offset": "Evaluate after sunset"
         },
         "data_description": {
           "learn_actual_entity": "Energy sensor of today's total PV yield that resets every day (e.g. daily PV energy of the inverter).",
-          "learn_cloud_entity": "Sensor with the average cloud cover of the day in %. Only days below the threshold are learned from.",
-          "learn_cloud_threshold": "Days with less cloud cover than this count as clear.",
+          "learn_cloud_entity": "Sensor with the average cloud cover of the day in %. Empty: the cloud cover of Open-Meteo between sunrise and sunset is used.",
+          "learn_cloud_threshold": "Up to this cloud cover a day counts fully; cloudier days count less.",
           "learn_smoothing": "Weight of a new clear day (0.2 = 20 % new, 80 % previous).",
-          "learn_min_days": "Number of clear days needed before the learned factor is considered reliable.",
-          "learn_auto_apply": "Once enough clear days are collected, the learned factor replaces the configured efficiency factor of all entries.",
+          "learn_min_days": "Weighted days (a clear day counts 1) before the learned factor is considered reliable.",
+          "learn_auto_apply": "Once learned, the seasonal factor and the time-of-day profile correct the forecast of all entries.",
+          "learn_intraday": "Compares the actual yield so far with the forecast and corrects the rest of today.",
+          "learn_compare_model": "Open-Meteo model forecast once a day for comparison (e.g. best_match). Empty = off.",
           "learn_sunset_offset": "Minutes after sunset when the day is evaluated."
         }
       }
@@ -230,6 +238,21 @@
       },
       "clear_days": {
         "name": "Clear days learned"
+      },
+      "accuracy": {
+        "name": "Forecast error (30 days)"
+      },
+      "total_today": {
+        "name": "Total - today"
+      },
+      "total_today_remaining": {
+        "name": "Total - remaining today"
+      },
+      "total_tomorrow": {
+        "name": "Total - tomorrow"
+      },
+      "total_power_now": {
+        "name": "Total - power now"
       }
     }
   },

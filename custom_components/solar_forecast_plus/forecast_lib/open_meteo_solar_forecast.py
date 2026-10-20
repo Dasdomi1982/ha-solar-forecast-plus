@@ -375,6 +375,8 @@ class OpenMeteoSolarForecast:
         tz = timezone.utc
         data_gaps = 0
         snow_gaps = 0
+        cloud_cover: dict[dt, float] = {}
+        daylight: dict = {}
         for (
             azimuth,
             declination,
@@ -426,6 +428,8 @@ class OpenMeteoSolarForecast:
                 "minutely_15": "temperature_2m"
                 ",global_tilted_irradiance,global_tilted_irradiance_instant,diffuse_radiation,diffuse_radiation_instant,direct_radiation,direct_radiation_instant,snow_depth",
                 "daily": "sunrise,sunset",
+                # Plus: hourly cloud cover for the learning weight
+                "hourly": "cloud_cover",
                 "forecast_days": str(self.forecast_days),
                 "past_days": str(self.past_days),
                 "timezone": "auto",
@@ -499,6 +503,22 @@ class OpenMeteoSolarForecast:
                 for day, ts in zip(daily_dates, data["daily"]["sunset"], strict=True)
                 if ts is not None
             }
+
+            # Plus: keep cloud cover and daylight of the first location
+            if not cloud_cover:
+                hourly = data.get("hourly") or {}
+                h_time = hourly.get("time") or []
+                h_cloud = hourly.get("cloud_cover") or []
+                if isinstance(h_cloud, list) and len(h_cloud) == len(h_time):
+                    for ts, value in zip(h_time, h_cloud):
+                        if value is not None:
+                            cloud_cover[
+                                dt.fromtimestamp(ts, timezone.utc).astimezone(tz)
+                            ] = float(value)
+            if not daylight:
+                for day in daily_dates:
+                    if day in sunrise_dict and day in sunset_dict:
+                        daylight[day] = (sunrise_dict[day], sunset_dict[day])
 
             damping_factors = [
                 calculate_damping_coefficient(
@@ -674,6 +694,8 @@ class OpenMeteoSolarForecast:
             wh_days=wh_days,
             api_timezone=tz,
             wh_period_15m=wh_period_15m,
+            cloud_cover=cloud_cover,
+            daylight=daylight,
         )
 
     async def close(self) -> None:

@@ -42,6 +42,8 @@ from .const import (
     CONF_LEARN_AUTO_APPLY,
     CONF_LEARN_CLOUD_ENTITY,
     CONF_LEARN_CLOUD_THRESHOLD,
+    CONF_LEARN_COMPARE_MODEL,
+    CONF_LEARN_INTRADAY,
     CONF_LEARN_ENABLED,
     CONF_LEARN_MIN_DAYS,
     CONF_LEARN_OFFSET,
@@ -293,6 +295,13 @@ def _learning_schema(current: dict[str, Any]) -> vol.Schema:
                 CONF_LEARN_AUTO_APPLY, default=_default(CONF_LEARN_AUTO_APPLY)
             ): BooleanSelector(),
             vol.Required(
+                CONF_LEARN_INTRADAY, default=_default(CONF_LEARN_INTRADAY)
+            ): BooleanSelector(),
+            vol.Optional(
+                CONF_LEARN_COMPARE_MODEL,
+                description={"suggested_value": _default(CONF_LEARN_COMPARE_MODEL)},
+            ): str,
+            vol.Required(
                 CONF_LEARN_OFFSET, default=_default(CONF_LEARN_OFFSET)
             ): vol.All(
                 NumberSelector(
@@ -312,13 +321,17 @@ def _validate_learning(user_input: dict[str, Any]) -> dict[str, str]:
     if user_input.get(CONF_LEARN_ENABLED):
         if not user_input.get(CONF_LEARN_ACTUAL_ENTITY):
             errors[CONF_LEARN_ACTUAL_ENTITY] = "learn_actual_required"
-        if not user_input.get(CONF_LEARN_CLOUD_ENTITY):
-            errors[CONF_LEARN_CLOUD_ENTITY] = "learn_cloud_required"
     return errors
 
 
 def _learning_options(user_input: dict[str, Any]) -> dict[str, Any]:
-    return {key: user_input.get(key, LEARN_DEFAULTS[key]) for key in LEARN_KEYS}
+    options = {key: user_input.get(key, LEARN_DEFAULTS[key]) for key in LEARN_KEYS}
+    # An emptied comparison model switches the comparison off.
+    if CONF_LEARN_COMPARE_MODEL in user_input or user_input:
+        options[CONF_LEARN_COMPARE_MODEL] = (
+            user_input.get(CONF_LEARN_COMPARE_MODEL) or ""
+        ).strip()
+    return options
 
 
 class OpenMeteoSolarForecastFlowHandler(ConfigFlow, domain=DOMAIN):

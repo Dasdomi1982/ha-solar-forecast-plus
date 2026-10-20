@@ -1,27 +1,36 @@
-# Part of Solar Forecast Plus (Dasdomi1982), licensed under the Apache License 2.0.
-"""Self-learning efficiency factor (Open-Meteo Solar Forecast Plus).
+"""Self-learning corrections of Solar Forecast Plus.
 
-Once a day, shortly after sunset, the actual PV yield of the day is compared
-with the forecast of all configured entries. On clear days (cloud cover below a
-threshold) the ratio is turned into an efficiency factor and smoothed with an
-exponential moving average. After a minimum number of clear days the learned
-factor can optionally replace the configured efficiency factor of every entry.
+Shortly after sunset the actual PV yield of the day is compared with the raw
+forecast of all entries. From that the learner derives
 
-The pure calculation lives in :func:`evaluate_day` so it can be tested without
-Home Assistant.
+* a weighted efficiency factor (every day counts, clear days the most),
+* a factor per month (seasonal, blended with the overall factor),
+* a time-of-day profile (10 bins from sunrise to sunset), and
+* accuracy statistics of the day-ahead forecast, including a comparison
+  weather model.
+
+During the day it also measures the deviation so far and corrects the rest
+of today's forecast (intraday correction).
+
+The pure calculations live in module level functions so they can be tested
+without Home Assistant.
 """
 
 from __future__ import annotations
 
+import asyncio
 from dataclasses import dataclass, field
-from datetime import date, timedelta
+from datetime import date, datetime, timedelta
 from typing import Any
 
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import STATE_UNAVAILABLE, STATE_UNKNOWN
 from homeassistant.core import CALLBACK_TYPE, HomeAssistant, callback
 from homeassistant.helpers.dispatcher import async_dispatcher_send
-from homeassistant.helpers.event import async_track_sunset
+from homeassistant.helpers.event import (
+    async_track_sunset,
+    async_track_time_interval,
+)
 from homeassistant.helpers.storage import Store
 from homeassistant.util import dt as dt_util
 
@@ -30,7 +39,9 @@ from .const import (
     CONF_LEARN_AUTO_APPLY,
     CONF_LEARN_CLOUD_ENTITY,
     CONF_LEARN_CLOUD_THRESHOLD,
+    CONF_LEARN_COMPARE_MODEL,
     CONF_LEARN_ENABLED,
+    CONF_LEARN_INTRADAY,
     CONF_LEARN_MIN_DAYS,
     CONF_LEARN_OFFSET,
     CONF_LEARN_SMOOTHING,
@@ -39,12 +50,26 @@ from .const import (
     LEARN_HISTORY_DAYS,
     LEARN_MAX_RATIO,
     LEARN_MIN_FORECAST_KWH,
+    LEARN_SEASON_PRIOR,
     LOGGER,
+    PROFILE_MIN_SHARE,
+    PROFILE_MIN_WEIGHT,
+    PROFILE_RANGE,
     SIGNAL_LEARNING_UPDATED,
+)
+from .corrections import (
+    PROFILE_BINS,
+    Intraday,
+    bin_energy,
+    energy_until,
+    forecast_bins,
+    intraday_from,
 )
 
 STORAGE_VERSION = 1
 STORAGE_KEY = f"{DOMAIN}.learning"
+INTRADAY_INTERVAL = timedelta(minutes=5)
+ACCURACY_DAYS = 30
 
 _ENERGY_TO_KWH = {"wh": 0.001, "kwh": 1.0, "mwh": 1000.0}
 
@@ -55,15 +80,25 @@ class LearningState:
 
     factor: float | None = None
     clear_days: int = 0
+    weight_total: float = 0.0
     last_date: str | None = None
     last_ratio: float | None = None
     last_clear: bool | None = None
     last_cloud: float | None = None
+    last_cloud_source: str | None = None
+    last_weight: float | None = None
     last_actual_kwh: float | None = None
     last_forecast_kwh: float | None = None
     last_clear_date: str | None = None
     last_skip_reason: str | None = None
     history: list[dict[str, Any]] = field(default_factory=list)
+    monthly: dict[str, dict[str, float]] = field(default_factory=dict)
+    profile: list[dict[str, float]] = field(
+        default_factory=lambda: [{"r": 1.0, "w": 0.0} for _ in range(PROFILE_BINS)]
+    )
+    profile_days: float = 0.0
+    accuracy: list[dict[str, Any]] = field(default_factory=list)
+    pending: dict[str, Any] | None = None
 
     @classmethod
     def from_dict(cls, data: dict[str, Any] | None) -> LearningState:
@@ -71,10 +106,19 @@ class LearningState:
         if not data:
             return state
         for key in cls.__dataclass_fields__:
-            if key in data:
+            if key in data and data[key] is not None:
                 setattr(state, key, data[key])
         if not isinstance(state.history, list):
             state.history = []
+        if not isinstance(state.monthly, dict):
+            state.monthly = {}
+        if not isinstance(state.profile, list) or len(state.profile) != PROFILE_BINS:
+            state.profile = [{"r": 1.0, "w": 0.0} for _ in range(PROFILE_BINS)]
+        if not isinstance(state.accuracy, list):
+            state.accuracy = []
+        # Migration from 0.3: clear days count as full-weight days.
+        if not data.get("weight_total") and state.clear_days:
+            state.weight_total = float(state.clear_days)
         return state
 
     def as_dict(self) -> dict[str, Any]:
@@ -89,7 +133,27 @@ class DayResult:
     reason: str | None = None
     ratio: float | None = None
     clear: bool = False
+    weight: float = 0.0
     total: float | None = None
+
+
+# --- pure calculations -------------------------------------------------------
+
+
+def day_weight(cloud: float | None, threshold: float) -> float:
+    """Weight of a day for learning: 1 up to the threshold, then falling."""
+    if cloud is None:
+        return 0.0
+    if cloud <= threshold:
+        return 1.0
+    span = max(100.0 - threshold, 1.0)
+    return round(max(0.0, 1.0 - (cloud - threshold) / span) ** 2, 3)
+
+
+def _ema(old: float | None, new: float, alpha: float) -> float:
+    if old is None:
+        return new
+    return old + alpha * (new - old)
 
 
 def evaluate_day(
@@ -103,7 +167,11 @@ def evaluate_day(
     smoothing: float,
     current_efficiency: float,
 ) -> DayResult:
-    """Update ``state`` with the result of one day (pure function)."""
+    """Update ``state`` with the result of one day (pure function).
+
+    ``forecast_kwh`` is the raw forecast (computed with
+    ``current_efficiency``).
+    """
     if actual_kwh is None:
         return _skip(state, day, "actual_unavailable")
     if forecast_kwh is None or forecast_kwh < LEARN_MIN_FORECAST_KWH:
@@ -111,36 +179,146 @@ def evaluate_day(
 
     ratio = round(min(actual_kwh / forecast_kwh, LEARN_MAX_RATIO), 3)
     clear = cloud is not None and cloud < cloud_threshold
+    weight = day_weight(cloud, cloud_threshold)
     total = round(ratio * current_efficiency, 4)
 
     state.last_date = day.isoformat()
     state.last_ratio = ratio
     state.last_clear = clear
     state.last_cloud = cloud
+    state.last_weight = weight
     state.last_actual_kwh = round(actual_kwh, 3)
     state.last_forecast_kwh = round(forecast_kwh, 3)
     state.last_skip_reason = None
 
-    if clear:
-        if state.factor is None:
-            state.factor = round(total, 4)
+    # A first value needs a reasonably clear day; afterwards every day counts
+    # with its weight.
+    if weight > 0 and (state.factor is not None or weight >= 0.5):
+        first = state.factor is None
+        state.factor = round(
+            total if first else _ema(state.factor, total, smoothing * weight), 4
+        )
+        state.weight_total = round(state.weight_total + weight, 3)
+        month = str(day.month)
+        entry = state.monthly.get(month)
+        if entry is None:
+            entry = {"f": total, "w": 0.0}
         else:
-            state.factor = round(
-                (1 - smoothing) * state.factor + smoothing * total, 4
-            )
+            entry["f"] = round(_ema(entry["f"], total, smoothing * weight), 4)
+        entry["w"] = round(entry["w"] + weight, 3)
+        state.monthly[month] = entry
+    if clear:
         state.clear_days += 1
         state.last_clear_date = day.isoformat()
 
     state.history = [h for h in state.history if h.get("d") != day.isoformat()]
-    state.history.append({"d": day.isoformat(), "v": ratio, "k": clear})
+    state.history.append(
+        {"d": day.isoformat(), "v": ratio, "k": clear, "w": weight}
+    )
     state.history = state.history[-LEARN_HISTORY_DAYS:]
 
-    return DayResult(evaluated=True, ratio=ratio, clear=clear, total=total)
+    return DayResult(
+        evaluated=True, ratio=ratio, clear=clear, weight=weight, total=total
+    )
 
 
 def _skip(state: LearningState, day: date, reason: str) -> DayResult:
     state.last_skip_reason = f"{day.isoformat()}: {reason}"
     return DayResult(evaluated=False, reason=reason)
+
+
+def seasonal_factor(state: LearningState, day: date) -> float | None:
+    """Overall factor blended with the factor of the month of ``day``."""
+    if state.factor is None:
+        return None
+    entry = state.monthly.get(str(day.month))
+    if not entry or entry.get("w", 0) <= 0:
+        return state.factor
+    w = float(entry["w"])
+    return round(
+        (w * float(entry["f"]) + LEARN_SEASON_PRIOR * state.factor)
+        / (w + LEARN_SEASON_PRIOR),
+        4,
+    )
+
+
+def update_profile(
+    state: LearningState,
+    *,
+    actual_bins: list[float],
+    forecast_bins_kwh: list[float],
+    weight: float,
+    smoothing: float,
+) -> bool:
+    """Learn the relative deviation per daylight bin (pure function)."""
+    actual_total = sum(actual_bins)
+    forecast_total = sum(forecast_bins_kwh)
+    if weight <= 0 or actual_total <= 0 or forecast_total < LEARN_MIN_FORECAST_KWH:
+        return False
+    day_ratio = actual_total / forecast_total
+    learned = False
+    for i, (a, f) in enumerate(zip(actual_bins, forecast_bins_kwh)):
+        if f < PROFILE_MIN_SHARE * forecast_total:
+            continue
+        rel = min(max((a / f) / day_ratio, 0.2), 2.0)
+        entry = state.profile[i]
+        entry["r"] = round(
+            rel if entry["w"] <= 0 else _ema(entry["r"], rel, smoothing * weight), 4
+        )
+        entry["w"] = round(entry["w"] + weight, 3)
+        learned = True
+    if learned:
+        state.profile_days = round(state.profile_days + weight, 3)
+    return learned
+
+
+def profile_values(state: LearningState) -> list[float] | None:
+    """Applicable profile (bins without enough data stay neutral)."""
+    low, high = PROFILE_RANGE
+    values = [
+        min(max(e["r"], low), high) if e["w"] >= PROFILE_MIN_WEIGHT else 1.0
+        for e in state.profile
+    ]
+    if all(v == 1.0 for v in values):
+        return None
+    return values
+
+
+def record_accuracy(state: LearningState, day: date, actual_kwh: float) -> bool:
+    """Close the pending day-ahead forecast of ``day`` with the actual yield."""
+    pending = state.pending
+    if not pending or pending.get("d") != day.isoformat():
+        return False
+    item = {"d": day.isoformat(), "a": round(actual_kwh, 3)}
+    for key in ("raw", "cor", "alt"):
+        if pending.get(key) is not None:
+            item[key] = round(float(pending[key]), 3)
+    if pending.get("model"):
+        item["m"] = pending["model"]
+    state.accuracy = [x for x in state.accuracy if x.get("d") != item["d"]]
+    state.accuracy.append(item)
+    state.accuracy = state.accuracy[-ACCURACY_DAYS:]
+    state.pending = None
+    return True
+
+
+def accuracy_summary(state: LearningState) -> dict[str, Any]:
+    """Weighted absolute percentage error and bias per forecast variant."""
+    result: dict[str, Any] = {"days": len(state.accuracy)}
+    for key in ("cor", "raw", "alt"):
+        items = [x for x in state.accuracy if x.get(key) is not None and x["a"] > 0]
+        actual = sum(x["a"] for x in items)
+        if not items or actual <= 0:
+            result[key] = None
+            continue
+        abs_err = sum(abs(x[key] - x["a"]) for x in items)
+        bias = sum(x[key] - x["a"] for x in items)
+        result[key] = {
+            "error": round(100 * abs_err / actual, 1),
+            "bias": round(100 * bias / actual, 1),
+            "days": len(items),
+        }
+    return result
 
 
 def energy_state_to_kwh(value: str, unit: str | None) -> float | None:
@@ -165,6 +343,9 @@ def numeric_state(value: str | None) -> float | None:
         return None
 
 
+# --- Home Assistant glue -----------------------------------------------------
+
+
 class PvLearner:
     """Domain-wide learner shared by all config entries."""
 
@@ -173,7 +354,8 @@ class PvLearner:
         self._store: Store[dict[str, Any]] = Store(hass, STORAGE_VERSION, STORAGE_KEY)
         self.state = LearningState()
         self.entry: ConfigEntry | None = None
-        self._unsub_sunset: CALLBACK_TYPE | None = None
+        self.intraday: Intraday | None = None
+        self._unsubs: list[CALLBACK_TYPE] = []
 
     # -- lifecycle -----------------------------------------------------------
 
@@ -189,19 +371,26 @@ class PvLearner:
         self.async_detach()
         self.entry = entry
         offset = timedelta(minutes=int(self.option(CONF_LEARN_OFFSET)))
-        self._unsub_sunset = async_track_sunset(
-            self.hass, self._async_sunset, offset=offset
+        self._unsubs.append(
+            async_track_sunset(self.hass, self._async_sunset, offset=offset)
         )
+        if self.intraday_enabled:
+            self._unsubs.append(
+                async_track_time_interval(
+                    self.hass, self._async_intraday_tick, INTRADAY_INTERVAL
+                )
+            )
         LOGGER.debug("PV learning attached to %s (sunset %+s)", entry.title, offset)
 
     @callback
     def async_detach(self, entry: ConfigEntry | None = None) -> None:
         if entry is not None and self.entry is not None and entry.entry_id != self.entry.entry_id:
             return
-        if self._unsub_sunset is not None:
-            self._unsub_sunset()
-            self._unsub_sunset = None
+        for unsub in self._unsubs:
+            unsub()
+        self._unsubs = []
         self.entry = None
+        self.intraday = None
 
     # -- options -------------------------------------------------------------
 
@@ -216,44 +405,65 @@ class PvLearner:
         return self.entry is not None and bool(self.option(CONF_LEARN_ENABLED))
 
     @property
+    def intraday_enabled(self) -> bool:
+        return (
+            self.enabled
+            and bool(self.option(CONF_LEARN_INTRADAY))
+            and bool(self.option(CONF_LEARN_ACTUAL_ENTITY))
+        )
+
+    @property
+    def auto_apply(self) -> bool:
+        return self.enabled and bool(self.option(CONF_LEARN_AUTO_APPLY))
+
+    @property
     def min_days(self) -> int:
         return int(self.option(CONF_LEARN_MIN_DAYS))
 
     @property
+    def compare_model(self) -> str | None:
+        model = self.option(CONF_LEARN_COMPARE_MODEL)
+        return str(model).strip() or None if model else None
+
+    @property
     def learning_complete(self) -> bool:
-        return self.state.factor is not None and self.state.clear_days >= self.min_days
+        return (
+            self.state.factor is not None
+            and self.state.weight_total >= self.min_days
+        )
 
     @property
     def applied_factor(self) -> float | None:
-        """Factor that replaces the configured efficiency, if any."""
-        if (
-            self.enabled
-            and bool(self.option(CONF_LEARN_AUTO_APPLY))
-            and self.learning_complete
-        ):
+        """Overall learned factor if it is applied (for display)."""
+        if self.auto_apply and self.learning_complete:
             return float(self.state.factor)
         return None
 
-    # -- evaluation ----------------------------------------------------------
+    def applied_factor_for(self, day: date) -> float | None:
+        """Seasonal learned factor of ``day`` if it is applied."""
+        if self.auto_apply and self.learning_complete:
+            return seasonal_factor(self.state, day)
+        return None
+
+    def applied_profile(self) -> list[float] | None:
+        if self.auto_apply:
+            return profile_values(self.state)
+        return None
+
+    # -- helpers -------------------------------------------------------------
 
     def _coordinators(self) -> list[Any]:
         domain_data = self.hass.data.get(DOMAIN, {})
         return [
             value
             for key, value in domain_data.items()
-            if key != "learner" and getattr(value, "data", None) is not None
+            if key != "learner" and getattr(value, "raw", None) is not None
         ]
 
     def current_efficiency(self) -> float:
-        """DC-weighted efficiency currently used across all entries."""
-        coordinators = self._coordinators()
-        total_kwp = sum(c.dc_kwp_total for c in coordinators)
-        if not total_kwp:
-            return 1.0
-        return (
-            sum(c.effective_efficiency * c.dc_kwp_total for c in coordinators)
-            / total_kwp
-        )
+        """DC-weighted efficiency currently in effect (today)."""
+        applied = self.applied_factor_for(dt_util.now().date())
+        return applied if applied is not None else self.configured_efficiency()
 
     def configured_efficiency(self) -> float:
         coordinators = self._coordinators()
@@ -267,6 +477,90 @@ class PvLearner:
             acc += sum(e * k for e, k in zip(effs, kwps))
         return acc / total_kwp
 
+    def _actual_kwh(self) -> float | None:
+        state = self.hass.states.get(self.option(CONF_LEARN_ACTUAL_ENTITY) or "")
+        if state is None:
+            return None
+        return energy_state_to_kwh(
+            state.state, state.attributes.get("unit_of_measurement")
+        )
+
+    def _cloud(self, day: date) -> tuple[float | None, str | None]:
+        entity = self.option(CONF_LEARN_CLOUD_ENTITY)
+        if entity:
+            cloud_state = self.hass.states.get(entity)
+            value = numeric_state(cloud_state.state if cloud_state else None)
+            if value is not None:
+                return value, "sensor"
+        for c in self._coordinators():
+            value = c.raw.daylight_cloud_cover(day)
+            if value is not None:
+                return value, "open-meteo"
+        return None, None
+
+    async def _async_actual_bins(
+        self, day: date, daylight: tuple[datetime, datetime]
+    ) -> list[float] | None:
+        """Actual energy per daylight bin from the recorder history."""
+        entity_id = self.option(CONF_LEARN_ACTUAL_ENTITY)
+        if not entity_id or "recorder" not in self.hass.config.components:
+            return None
+        try:
+            from homeassistant.components.recorder import get_instance, history
+
+            start = dt_util.start_of_local_day(day)
+            end = start + timedelta(days=1)
+            states = await get_instance(self.hass).async_add_executor_job(
+                history.state_changes_during_period,
+                self.hass,
+                start,
+                end,
+                entity_id,
+            )
+        except Exception as err:  # noqa: BLE001
+            LOGGER.debug("No history for the profile: %s", err)
+            return None
+        samples: list[tuple[datetime, float]] = []
+        for st in states.get(entity_id, []):
+            value = energy_state_to_kwh(
+                st.state, st.attributes.get("unit_of_measurement")
+            )
+            if value is not None:
+                samples.append((st.last_changed, value))
+        if len(samples) < 4:
+            return None
+        return bin_energy(samples, daylight)
+
+    # -- intraday ------------------------------------------------------------
+
+    async def _async_intraday_tick(self, _now: datetime | None = None) -> None:
+        self.async_update_intraday()
+
+    @callback
+    def async_update_intraday(self, now: datetime | None = None) -> None:
+        """Recompute the intraday correction and republish all forecasts."""
+        coordinators = self._coordinators()
+        previous = self.intraday
+        if not self.intraday_enabled or not coordinators:
+            self.intraday = None
+        else:
+            now = now or dt_util.now()
+            so_far = sum(energy_until(c.base, now) for c in coordinators) / 1000
+            day = sum(c.base.day_production(now.date()) for c in coordinators) / 1000
+            self.intraday = intraday_from(
+                now=now,
+                actual_kwh=self._actual_kwh(),
+                forecast_so_far_kwh=so_far,
+                forecast_day_kwh=day,
+            )
+        if self.intraday is None and previous is None:
+            return
+        for c in coordinators:
+            c.async_publish()
+        async_dispatcher_send(self.hass, SIGNAL_LEARNING_UPDATED)
+
+    # -- evaluation ----------------------------------------------------------
+
     async def _async_sunset(self) -> None:
         await self.async_evaluate()
 
@@ -277,24 +571,12 @@ class PvLearner:
 
         day = day or dt_util.now().date()
         coordinators = self._coordinators()
-        forecast_wh = sum(c.data.day_production(day) for c in coordinators)
+        forecast_wh = sum(c.raw.day_production(day) for c in coordinators)
         forecast_kwh = forecast_wh / 1000 if coordinators else None
+        actual_kwh = self._actual_kwh()
+        cloud, source = self._cloud(day)
 
-        actual_kwh = None
-        actual_state = self.hass.states.get(self.option(CONF_LEARN_ACTUAL_ENTITY) or "")
-        if actual_state is not None:
-            actual_kwh = energy_state_to_kwh(
-                actual_state.state,
-                actual_state.attributes.get("unit_of_measurement"),
-            )
-
-        cloud = None
-        cloud_entity = self.option(CONF_LEARN_CLOUD_ENTITY)
-        if cloud_entity:
-            cloud_state = self.hass.states.get(cloud_entity)
-            cloud = numeric_state(cloud_state.state if cloud_state else None)
-
-        previous_applied = self.applied_factor
+        previous = (self.applied_factor_for(day), self.applied_profile())
         result = evaluate_day(
             self.state,
             day=day,
@@ -303,27 +585,78 @@ class PvLearner:
             cloud=cloud,
             cloud_threshold=float(self.option(CONF_LEARN_CLOUD_THRESHOLD)),
             smoothing=float(self.option(CONF_LEARN_SMOOTHING)),
-            current_efficiency=self.current_efficiency(),
+            current_efficiency=self.configured_efficiency(),
         )
+        if result.evaluated:
+            self.state.last_cloud_source = source
+
+        # time-of-day profile
+        if result.evaluated and coordinators:
+            daylight = coordinators[0].raw.daylight.get(day)
+            if daylight is not None:
+                actual_bins = await self._async_actual_bins(day, daylight)
+                if actual_bins is not None:
+                    update_profile(
+                        self.state,
+                        actual_bins=actual_bins,
+                        forecast_bins_kwh=forecast_bins(
+                            [c.raw for c in coordinators], day
+                        ),
+                        weight=result.weight,
+                        smoothing=float(self.option(CONF_LEARN_SMOOTHING)),
+                    )
+
+        # accuracy of yesterday's day-ahead forecast, then a new day-ahead
+        if actual_kwh is not None:
+            record_accuracy(self.state, day, actual_kwh)
+        await self._async_store_day_ahead(day + timedelta(days=1), coordinators)
+
         LOGGER.info(
-            "PV learning %s: actual=%s kWh forecast=%s kWh cloud=%s -> %s",
+            "PV learning %s: actual=%s kWh forecast=%s kWh cloud=%s (%s) -> %s",
             day,
             actual_kwh,
             forecast_kwh,
             cloud,
+            source,
             result,
         )
         self._save()
         async_dispatcher_send(self.hass, SIGNAL_LEARNING_UPDATED)
 
-        if self.applied_factor != previous_applied:
+        if (self.applied_factor_for(day), self.applied_profile()) != previous:
             await self.async_refresh_forecasts()
         return result
 
+    async def _async_store_day_ahead(
+        self, target: date, coordinators: list[Any]
+    ) -> None:
+        if not coordinators:
+            return
+        raw = sum(c.raw.day_production(target) for c in coordinators) / 1000
+        cor = sum(c.base.day_production(target) for c in coordinators) / 1000
+        alt = None
+        model = self.compare_model
+        if model:
+            results = await asyncio.gather(
+                *(c.async_fetch_compare(model, target) for c in coordinators),
+                return_exceptions=True,
+            )
+            if all(isinstance(r, (int, float)) for r in results):
+                alt = sum(results) / 1000
+            else:
+                LOGGER.debug("Comparison model %s unavailable: %s", model, results)
+        self.state.pending = {
+            "d": target.isoformat(),
+            "raw": round(raw, 3),
+            "cor": round(cor, 3),
+            "alt": round(alt, 3) if alt is not None else None,
+            "model": model,
+        }
+
     async def async_refresh_forecasts(self) -> None:
         for coordinator in self._coordinators():
-            coordinator._apply_learned_efficiency()  # noqa: SLF001
-            await coordinator.async_request_refresh()
+            coordinator.async_publish()
+        self.async_update_intraday()
 
     # -- manual control ------------------------------------------------------
 
@@ -336,19 +669,27 @@ class PvLearner:
         last_clear_date: str | None = None,
         reset: bool = False,
     ) -> None:
-        previous_applied = self.applied_factor
         if reset:
             self.state = LearningState()
         if factor is not None:
+            # A manually set factor replaces the seasonal values as well.
             self.state.factor = round(float(factor), 4)
+            self.state.monthly = {}
         if clear_days is not None:
             self.state.clear_days = int(clear_days)
+            self.state.weight_total = max(self.state.weight_total, float(clear_days))
         if history is not None:
             cleaned = []
             for item in history:
                 try:
+                    clear = bool(item.get("k", False))
                     cleaned.append(
-                        {"d": str(item["d"]), "v": float(item["v"]), "k": bool(item.get("k", False))}
+                        {
+                            "d": str(item["d"]),
+                            "v": float(item["v"]),
+                            "k": clear,
+                            "w": float(item.get("w", 1.0 if clear else 0.0)),
+                        }
                     )
                 except (KeyError, TypeError, ValueError):
                     continue
@@ -362,5 +703,4 @@ class PvLearner:
             self.state.last_clear_date = str(last_clear_date)
         self._save()
         async_dispatcher_send(self.hass, SIGNAL_LEARNING_UPDATED)
-        if self.applied_factor != previous_applied:
-            await self.async_refresh_forecasts()
+        await self.async_refresh_forecasts()

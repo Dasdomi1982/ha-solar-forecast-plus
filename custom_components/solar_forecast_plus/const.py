@@ -39,6 +39,8 @@ CONF_LEARN_SMOOTHING = "learn_smoothing"
 CONF_LEARN_MIN_DAYS = "learn_min_days"
 CONF_LEARN_AUTO_APPLY = "learn_auto_apply"
 CONF_LEARN_OFFSET = "learn_sunset_offset"
+CONF_LEARN_INTRADAY = "learn_intraday"
+CONF_LEARN_COMPARE_MODEL = "learn_compare_model"
 
 LEARN_KEYS = (
     CONF_LEARN_ENABLED,
@@ -49,6 +51,8 @@ LEARN_KEYS = (
     CONF_LEARN_MIN_DAYS,
     CONF_LEARN_AUTO_APPLY,
     CONF_LEARN_OFFSET,
+    CONF_LEARN_INTRADAY,
+    CONF_LEARN_COMPARE_MODEL,
 )
 
 LEARN_DEFAULTS = {
@@ -60,6 +64,8 @@ LEARN_DEFAULTS = {
     CONF_LEARN_MIN_DAYS: 10,
     CONF_LEARN_AUTO_APPLY: False,
     CONF_LEARN_OFFSET: 30,
+    CONF_LEARN_INTRADAY: True,
+    CONF_LEARN_COMPARE_MODEL: "best_match",
 }
 
 # A daily ratio above this is treated as implausible (sensor glitch).
@@ -67,5 +73,16 @@ LEARN_MAX_RATIO = 3.0
 # Below this forecast (kWh) a day is not evaluated (night/snow/error).
 LEARN_MIN_FORECAST_KWH = 1.0
 LEARN_HISTORY_DAYS = 30
+# Seasonal factor: weight (equivalent days) of the overall factor when it is
+# blended with the factor of the current month.
+LEARN_SEASON_PRIOR = 3.0
+# Time-of-day profile: equivalent days per bin before it is applied, and the
+# minimum share of the day's forecast a bin needs to be learned from.
+PROFILE_MIN_WEIGHT = 5.0
+PROFILE_MIN_SHARE = 0.03
+PROFILE_RANGE = (0.5, 1.5)
+# Only this many past days are requested from Open-Meteo (upstream: 92).
+PAST_DAYS = 7
 
 SIGNAL_LEARNING_UPDATED = f"{DOMAIN}_learning_updated"
+SIGNAL_FORECAST_UPDATED = f"{DOMAIN}_forecast_updated"

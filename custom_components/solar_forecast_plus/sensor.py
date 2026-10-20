@@ -18,7 +18,7 @@ from homeassistant.components.sensor import (
     SensorStateClass,
 )
 from homeassistant.config_entries import ConfigEntry
-from homeassistant.const import UnitOfEnergy, UnitOfPower
+from homeassistant.const import PERCENTAGE, UnitOfEnergy, UnitOfPower
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.device_registry import DeviceEntryType, DeviceInfo
 from homeassistant.helpers.dispatcher import async_dispatcher_connect
@@ -26,7 +26,7 @@ from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.event import async_track_utc_time_change
 from homeassistant.helpers.typing import StateType
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
-from homeassistant.util import slugify
+from homeassistant.util import dt as dt_util, slugify
 
 from .forecast_lib.models import Estimate
 
@@ -36,8 +36,10 @@ from .const import (
     ATTR_WH_PERIOD_15M,
     CONF_LEARN_ENABLED,
     DOMAIN,
+    SIGNAL_FORECAST_UPDATED,
     SIGNAL_LEARNING_UPDATED,
 )
+from .learner import accuracy_summary, profile_values, seasonal_factor
 from .coordinator import OpenMeteoSolarForecastDataUpdateCoordinator
 
 
@@ -252,7 +254,11 @@ async def async_setup_entry(
     if entry.options.get(CONF_LEARN_ENABLED):
         async_add_entities(
             LearningSensorEntity(entry_id=entry.entry_id, kind=kind)
-            for kind in ("learned_factor", "yield_ratio", "clear_days")
+            for kind in ("learned_factor", "yield_ratio", "clear_days", "accuracy")
+        )
+        async_add_entities(
+            TotalSensorEntity(entry_id=entry.entry_id, kind=kind)
+            for kind in TotalSensorEntity._ENTITY_SUFFIX
         )
 
 
@@ -368,8 +374,18 @@ class OpenMeteoSolarForecastSensorEntity(
 
 
 
+def _plus_device(entry_id: str) -> DeviceInfo:
+    return DeviceInfo(
+        entry_type=DeviceEntryType.SERVICE,
+        identifiers={(DOMAIN, entry_id)},
+        manufacturer="Open-Meteo",
+        name="Solar Forecast Plus",
+        configuration_url="https://open-meteo.com",
+    )
+
+
 class LearningSensorEntity(SensorEntity):
-    """Plus: sensors of the self-learning efficiency factor."""
+    """Plus: sensors of the self-learning corrections."""
 
     _attr_has_entity_name = True
     _attr_should_poll = False
@@ -379,12 +395,14 @@ class LearningSensorEntity(SensorEntity):
         "learned_factor": "pv_faktor",
         "yield_ratio": "ertrag_zu_prognose",
         "clear_days": "klare_tage",
+        "accuracy": "treffsicherheit",
     }
 
     _ICONS = {
         "learned_factor": "mdi:solar-panel",
         "yield_ratio": "mdi:solar-power-variant",
         "clear_days": "mdi:weather-sunny",
+        "accuracy": "mdi:bullseye-arrow",
     }
 
     def __init__(self, *, entry_id: str, kind: str) -> None:
@@ -393,17 +411,12 @@ class LearningSensorEntity(SensorEntity):
         self._attr_unique_id = f"{entry_id}_{kind}"
         self.entity_id = f"{SENSOR_DOMAIN}.solar_forecast_plus_{self._ENTITY_SUFFIX[kind]}"
         self._attr_icon = self._ICONS[kind]
-        if kind == "learned_factor":
+        if kind in ("learned_factor", "yield_ratio"):
             self._attr_suggested_display_precision = 2
-        elif kind == "yield_ratio":
-            self._attr_suggested_display_precision = 2
-        self._attr_device_info = DeviceInfo(
-            entry_type=DeviceEntryType.SERVICE,
-            identifiers={(DOMAIN, entry_id)},
-            manufacturer="Open-Meteo",
-            name="Solar Forecast Plus",
-            configuration_url="https://open-meteo.com",
-        )
+        if kind == "accuracy":
+            self._attr_native_unit_of_measurement = PERCENTAGE
+            self._attr_suggested_display_precision = 1
+        self._attr_device_info = _plus_device(entry_id)
 
     @property
     def _learner(self):
@@ -424,30 +437,174 @@ class LearningSensorEntity(SensorEntity):
             return state.factor
         if self._kind == "yield_ratio":
             return state.last_ratio
+        if self._kind == "accuracy":
+            cor = accuracy_summary(state).get("cor")
+            return cor["error"] if cor else None
         return state.clear_days
 
     @property
     def extra_state_attributes(self) -> dict[str, Any] | None:
         learner = self._learner
         state = learner.state
+        today = dt_util.now().date()
         if self._kind == "learned_factor":
+            profile = profile_values(state)
             return {
                 "letzter_klarer_tag": state.last_clear_date,
                 "klare_tage": state.clear_days,
-                "min_klare_tage": learner.min_days,
+                "gewichtete_tage": state.weight_total,
+                "min_tage": learner.min_days,
                 "eingelernt": learner.learning_complete,
                 "angewendet": learner.applied_factor is not None,
+                "faktor_saison": seasonal_factor(state, today),
+                "faktor_je_monat": {
+                    m: v["f"] for m, v in sorted(state.monthly.items(), key=lambda x: int(x[0]))
+                },
+                "tagesprofil": [round(e["r"], 3) for e in state.profile],
+                "tagesprofil_tage": state.profile_days,
+                "tagesprofil_aktiv": learner.applied_profile() is not None,
+                "daempfung_morgens": _damping(profile, morning=True),
+                "daempfung_abends": _damping(profile, morning=False),
                 "wirkungsgrad_konfiguriert": round(learner.configured_efficiency(), 4),
                 "wirkungsgrad_aktiv": round(learner.current_efficiency(), 4),
             }
         if self._kind == "yield_ratio":
+            intraday = learner.intraday
             return {
                 "datum": state.last_date,
                 "klar": state.last_clear,
                 "bewoelkung": state.last_cloud,
+                "bewoelkung_quelle": state.last_cloud_source,
+                "gewicht": state.last_weight,
                 "ist_kwh": state.last_actual_kwh,
                 "prognose_kwh": state.last_forecast_kwh,
                 "uebersprungen": state.last_skip_reason,
+                "heute_verhaeltnis": intraday.ratio if intraday else None,
+                "heute_vertrauen": intraday.weight if intraday else None,
                 "verlauf": state.history[-14:],
             }
-        return {"min_klare_tage": learner.min_days}
+        if self._kind == "accuracy":
+            summary = accuracy_summary(state)
+            cor, raw, alt = summary.get("cor"), summary.get("raw"), summary.get("alt")
+            model = learner.compare_model
+            better = None
+            if cor and alt:
+                better = "plus" if cor["error"] <= alt["error"] else model
+            return {
+                "tage": summary["days"],
+                "abweichung_plus": cor["error"] if cor else None,
+                "verzerrung_plus": cor["bias"] if cor else None,
+                "abweichung_ohne_lernen": raw["error"] if raw else None,
+                "vergleichsmodell": model,
+                "abweichung_vergleichsmodell": alt["error"] if alt else None,
+                "verzerrung_vergleichsmodell": alt["bias"] if alt else None,
+                "besser": better,
+                "offen": state.pending,
+                "verlauf": state.accuracy[-14:],
+            }
+        return {"min_tage": learner.min_days, "gewichtete_tage": state.weight_total}
+
+
+def _damping(profile: list[float] | None, *, morning: bool) -> float | None:
+    if profile is None:
+        return None
+    values = profile[:2] if morning else profile[-2:]
+    return round(max(0.0, 1.0 - sum(values) / len(values)), 2)
+
+
+class TotalSensorEntity(SensorEntity):
+    """Plus: sum of all entries (whole plant)."""
+
+    _attr_has_entity_name = True
+    _attr_should_poll = False
+
+    _ENTITY_SUFFIX = {
+        "total_today": "gesamt_heute",
+        "total_today_remaining": "gesamt_heute_rest",
+        "total_tomorrow": "gesamt_morgen",
+        "total_power_now": "gesamt_leistung",
+    }
+
+    def __init__(self, *, entry_id: str, kind: str) -> None:
+        self._kind = kind
+        self._attr_translation_key = kind
+        self._attr_unique_id = f"{entry_id}_{kind}"
+        self.entity_id = f"{SENSOR_DOMAIN}.solar_forecast_plus_{self._ENTITY_SUFFIX[kind]}"
+        if kind == "total_power_now":
+            self._attr_device_class = SensorDeviceClass.POWER
+            self._attr_native_unit_of_measurement = UnitOfPower.WATT
+            self._attr_state_class = SensorStateClass.MEASUREMENT
+            self._attr_suggested_display_precision = 0
+        else:
+            self._attr_device_class = SensorDeviceClass.ENERGY
+            self._attr_native_unit_of_measurement = UnitOfEnergy.WATT_HOUR
+            self._attr_suggested_unit_of_measurement = UnitOfEnergy.KILO_WATT_HOUR
+            self._attr_suggested_display_precision = 1
+        self._attr_device_info = _plus_device(entry_id)
+
+    def _coordinators(self) -> list[OpenMeteoSolarForecastDataUpdateCoordinator]:
+        return [
+            value
+            for key, value in self.hass.data.get(DOMAIN, {}).items()
+            if key != "learner" and getattr(value, "data", None) is not None
+        ]
+
+    async def async_added_to_hass(self) -> None:
+        await super().async_added_to_hass()
+        self.async_on_remove(
+            async_dispatcher_connect(
+                self.hass, SIGNAL_FORECAST_UPDATED, self.async_write_ha_state
+            )
+        )
+        self.async_on_remove(
+            async_track_utc_time_change(
+                self.hass, lambda _now: self.async_write_ha_state(), second=0
+            )
+        )
+
+    @property
+    def available(self) -> bool:
+        return bool(self._coordinators())
+
+    def _value(self, estimate: Estimate) -> float:
+        if self._kind == "total_today":
+            return estimate.energy_production_today
+        if self._kind == "total_today_remaining":
+            return estimate.energy_production_today_remaining
+        if self._kind == "total_tomorrow":
+            return estimate.energy_production_tomorrow
+        return estimate.power_production_now
+
+    @property
+    def native_value(self) -> StateType:
+        coordinators = self._coordinators()
+        if not coordinators:
+            return None
+        return round(sum(self._value(c.data) for c in coordinators), 1)
+
+    @property
+    def extra_state_attributes(self) -> dict[str, Any] | None:
+        coordinators = self._coordinators()
+        parts = {
+            c.config_entry.title: round(self._value(c.data), 1) for c in coordinators
+        }
+        attrs: dict[str, Any] = {"teile": parts}
+        if self._kind in ("total_today", "total_today_remaining", "total_tomorrow"):
+            attrs["ohne_korrektur"] = round(
+                sum(self._value(c.raw) for c in coordinators if c.raw is not None), 1
+            )
+        if self._kind in ("total_today", "total_tomorrow"):
+            target = dt_util.now().date()
+            if self._kind == "total_tomorrow":
+                target += timedelta(days=1)
+            hours: dict[str, float] = {}
+            for c in coordinators:
+                for t, wh in c.data.wh_period.items():
+                    if t.date() == target:
+                        key = t.isoformat()
+                        hours[key] = round(hours.get(key, 0.0) + wh, 1)
+            attrs[ATTR_WH_PERIOD] = dict(sorted(hours.items()))
+            raw_cloud = next((c.raw for c in coordinators if c.raw is not None), None)
+            if raw_cloud is not None:
+                attrs["bewoelkung"] = raw_cloud.daylight_cloud_cover(target)
+        return attrs

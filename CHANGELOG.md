@@ -1,5 +1,22 @@
 # Changelog
 
+## 0.4.0 (2026-10-20)
+* **Korrektur im Tagesverlauf:** Der Ertrag bis jetzt wird alle 5 Minuten mit der
+  Prognose verglichen; der Rest des Tages wird angepasst (abklingend zum Abend).
+* **Lernen an allen Tagen:** Jeder Tag zählt, gewichtet nach Bewölkung. „Tage bis
+  zur Anwendung“ zählt jetzt gewichtete Tage.
+* **Faktor je Jahreszeit:** eigener Faktor je Monat, mit dem Gesamtfaktor gemischt.
+* **Tagesprofil:** lernt aus dem Recorder-Verlauf, ob morgens/abends regelmäßig
+  weniger kommt (gelernte Dämpfung), Tagessumme bleibt gleich.
+* **Gesamtsensoren:** `sensor.solar_forecast_plus_gesamt_heute`, `…_heute_rest`,
+  `…_morgen`, `…_leistung`.
+* **Bewölkung von Open-Meteo:** der Bewölkungssensor ist optional.
+* **Treffsicherheit:** neuer Sensor `sensor.solar_forecast_plus_treffsicherheit`
+  mit Abweichung der Vortagesprognose und Vergleich mit einem zweiten Wettermodell.
+* Nur noch 7 statt 92 vergangene Tage pro Abruf.
+* Gelernte Korrekturen werden auf die unveränderte Prognose angewendet (keine
+  Rückkopplung beim Lernen).
+
 ## 0.3.0 (2026-10-20)
 * Eigene Domain `solar_forecast_plus` (Ordner `custom_components/solar_forecast_plus`).
   Plus läuft damit parallel zur originalen Integration; Einträge müssen neu angelegt werden.

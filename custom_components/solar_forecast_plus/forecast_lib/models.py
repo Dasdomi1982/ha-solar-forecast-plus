@@ -1,4 +1,5 @@
 """Data models for the Forecast.Solar API."""
+# Modified in 2026 by Dasdomi1982 for Solar Forecast Plus (changes marked "Plus:"; see NOTICE and CHANGELOG.md).
 
 from __future__ import annotations
 
@@ -85,6 +86,29 @@ class Estimate:
     wh_days: dict[dt.datetime, int]
     api_timezone: dt.timezone
     wh_period_15m: dict[dt.datetime, float] = field(default_factory=dict)
+    # Plus: hourly cloud cover (%) and sunrise/sunset per day
+    cloud_cover: dict[dt.datetime, float] = field(default_factory=dict)
+    daylight: dict[dt.date, tuple[dt.datetime, dt.datetime]] = field(
+        default_factory=dict
+    )
+
+    def daylight_cloud_cover(self, specific_date: dt.date) -> float | None:
+        """Plus: mean cloud cover (%) between sunrise and sunset."""
+        sun = self.daylight.get(specific_date)
+        if sun is None:
+            values = [
+                v for t, v in self.cloud_cover.items()
+                if t.date() == specific_date and 8 <= t.hour < 17
+            ]
+        else:
+            rise, sset = sun
+            values = [
+                v for t, v in self.cloud_cover.items()
+                if rise - dt.timedelta(minutes=30) <= t < sset
+            ]
+        if not values:
+            return None
+        return round(sum(values) / len(values), 1)
 
     @property
     def timezone(self) -> timezone:

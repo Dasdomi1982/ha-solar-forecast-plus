@@ -11,7 +11,7 @@ from typing import Any
 
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import CONF_API_KEY, CONF_LATITUDE, CONF_LONGITUDE
-from homeassistant.core import HomeAssistant
+from homeassistant.core import HomeAssistant, callback
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 from homeassistant.helpers.storage import Store
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
@@ -35,7 +35,11 @@ from .const import (
     CONF_TRACKING,
     DOMAIN,
     LOGGER,
+    PAST_DAYS,
+    SIGNAL_FORECAST_UPDATED,
 )
+from .corrections import apply_corrections
+from homeassistant.helpers.dispatcher import async_dispatcher_send
 
 import numpy
 
@@ -275,9 +279,9 @@ class OpenMeteoSolarForecastDataUpdateCoordinator(DataUpdateCoordinator[Estimate
             # Single array with its own inverter: behaves like a shared one.
             ac_kwp = array_ac_kwp
 
-        self.forecast = OpenMeteoSolarForecast(
+        # Plus: keep the parameters to build a comparison forecast later.
+        self._forecast_kwargs = dict(
             api_key=api_key,
-            session=async_get_clientsession(hass),
             latitude=latitude,
             longitude=longitude,
             azimuth=azimuth,
@@ -295,6 +299,15 @@ class OpenMeteoSolarForecastDataUpdateCoordinator(DataUpdateCoordinator[Estimate
             max_snowcover_depth_cm=entry.options.get(CONF_MAX_SNOWCOVER_DEPTH_CM, 0.0),
             weather_model=entry.options.get(CONF_MODEL, "best_match"),
         )
+        self._session = async_get_clientsession(hass)
+        # Plus: only a few past days are needed (upstream requested 92).
+        self.forecast = OpenMeteoSolarForecast(
+            **self._forecast_kwargs, session=self._session, past_days=PAST_DAYS
+        )
+        # Plus: raw = library output with the configured efficiency,
+        # base = with learned corrections, data = base + intraday correction.
+        self.raw: Estimate | None = None
+        self.base: Estimate | None = None
 
         # Plus: remember the configured efficiency so a learned factor can be
         # applied and removed again without touching the options.
@@ -339,6 +352,14 @@ class OpenMeteoSolarForecastDataUpdateCoordinator(DataUpdateCoordinator[Estimate
                 api_timezone=timezone(
                     timedelta(seconds=stored["api_timezone_offset"])
                 ),
+                cloud_cover=_datetime_dict_from_json(stored.get("cloud_cover", {})),
+                daylight={
+                    date.fromisoformat(day): (
+                        datetime.fromisoformat(rise),
+                        datetime.fromisoformat(sset),
+                    )
+                    for day, (rise, sset) in stored.get("daylight", {}).items()
+                },
             )
         except (KeyError, TypeError, ValueError):
             LOGGER.warning("Discarding malformed retained forecast data")
@@ -359,15 +380,27 @@ class OpenMeteoSolarForecastDataUpdateCoordinator(DataUpdateCoordinator[Estimate
             "api_timezone_offset": estimate.api_timezone.utcoffset(
                 None
             ).total_seconds(),
+            "cloud_cover": _datetime_dict_to_json(estimate.cloud_cover),
+            "daylight": {
+                day.isoformat(): [rise.isoformat(), sset.isoformat()]
+                for day, (rise, sset) in estimate.daylight.items()
+            },
         }
         self._store.async_delay_save(lambda: data, 60)
 
     async def _async_update_data(self) -> Estimate:
         """Fetch Open-Meteo Solar Forecast estimates."""
+        raw = await self._async_fetch_raw()
+        self.raw = raw
+        self.base, corrected = self._build(raw)
+        return corrected
+
+    async def _async_fetch_raw(self) -> Estimate:
+        """Get the raw forecast (API, stored or retained as fallback)."""
         # On the first refresh after a restart or reload, reuse the stored
         # forecast if it is younger than the update interval instead of
         # hitting the API again.
-        if self.data is None:
+        if self.raw is None:
             retained = await self._async_load_retained_estimate()
             if (
                 retained is not None
@@ -381,13 +414,11 @@ class OpenMeteoSolarForecastDataUpdateCoordinator(DataUpdateCoordinator[Estimate
                 )
                 return retained
 
-        self._apply_learned_efficiency()
-
         try:
             async with asyncio.timeout(API_TIMEOUT_SECONDS):
                 estimate = await self.forecast.estimate()
         except Exception as err:
-            retained = self.data
+            retained = self.raw
             if retained is None:
                 retained = await self._async_load_retained_estimate()
             if retained is None:
@@ -431,24 +462,67 @@ class OpenMeteoSolarForecastDataUpdateCoordinator(DataUpdateCoordinator[Estimate
 
     @property
     def effective_efficiency(self) -> float:
-        """DC-weighted efficiency factor currently used for the forecast."""
+        """Efficiency factor in effect today (learned or configured)."""
+        learner = self._learner()
+        applied = (
+            learner.applied_factor_for(dt_util.now().date()) if learner else None
+        )
+        return applied if applied is not None else self.configured_efficiency_total
+
+    def _learner(self):
+        return self.hass.data.get(DOMAIN, {}).get("learner")
+
+    @property
+    def configured_efficiency_total(self) -> float:
         weights = list(self.forecast.dc_kwp)
-        effs = list(self.forecast.efficiency_factor)
         total = sum(weights)
+        effs = self._configured_efficiency
         if not total:
             return float(effs[0]) if effs else 1.0
         return sum(w * e for w, e in zip(weights, effs)) / total
 
-    def _apply_learned_efficiency(self) -> None:
-        """Use the learned factor (if active) instead of the configured one."""
-        learner = self.hass.data.get(DOMAIN, {}).get("learner")
-        factor = learner.applied_factor if learner is not None else None
-        if factor is None:
-            new = list(self._configured_efficiency)
-        else:
-            new = [factor] * len(self._configured_efficiency)
-        if list(self.forecast.efficiency_factor) != new:
-            LOGGER.debug("Using efficiency factor %s for %s", new, self.config_entry.title)
-            self.forecast.efficiency_factor = new
-    
-    
+    def _build(self, raw: Estimate) -> tuple[Estimate, Estimate]:
+        """Return (base, corrected) forecast derived from ``raw``."""
+        learner = self._learner()
+        if learner is None:
+            return raw, raw
+        configured = self.configured_efficiency_total or 1.0
+        day_factor = None
+        if learner.applied_factor_for(dt_util.now().date()) is not None:
+
+            def day_factor(day: date) -> float:
+                applied = learner.applied_factor_for(day)
+                return applied / configured if applied is not None else 1.0
+
+        profile = learner.applied_profile()
+        base = apply_corrections(raw, day_factor=day_factor, profile=profile)
+        intraday = learner.intraday
+        if intraday is None:
+            return base, base
+        return base, apply_corrections(
+            raw, day_factor=day_factor, profile=profile, intraday=intraday
+        )
+
+    @callback
+    def async_publish(self) -> None:
+        """Re-apply the corrections without calling the API."""
+        if self.raw is None:
+            return
+        self.base, self.data = self._build(self.raw)
+        self.async_update_listeners()
+
+    def async_update_listeners(self) -> None:
+        super().async_update_listeners()
+        async_dispatcher_send(self.hass, SIGNAL_FORECAST_UPDATED)
+
+    async def async_fetch_compare(self, model: str, target: date) -> float:
+        """Raw forecast (Wh) of ``target`` with another weather model."""
+        forecast = OpenMeteoSolarForecast(
+            **{**self._forecast_kwargs, "weather_model": model},
+            session=self._session,
+            past_days=0,
+            forecast_days=3,
+        )
+        async with asyncio.timeout(API_TIMEOUT_SECONDS):
+            estimate = await forecast.estimate()
+        return float(estimate.day_production(target))

@@ -94,7 +94,8 @@ def test_evaluate_day_learns_only_on_clear_days():
     )
     assert cloudy.evaluated and not cloudy.clear
     assert state.factor is None and state.clear_days == 0
-    assert state.history[-1] == {"d": "2026-10-19", "v": 1.072, "k": False}
+    assert state.history[-1]["v"] == 1.072 and state.history[-1]["k"] is False
+    assert 0 < state.history[-1]["w"] < 0.5  # cloudy days count only a little
 
     clear = evaluate_day(
         state, day=date(2026, 10, 20), actual_kwh=40.0, forecast_kwh=40.0,
