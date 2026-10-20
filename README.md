@@ -1,10 +1,7 @@
 # Solar Forecast Plus
 
-Weiterentwicklung der Home-Assistant-Integration
-[ha-open-meteo-solar-forecast](https://github.com/rany2/ha-open-meteo-solar-forecast)
-von [@rany2](https://github.com/rany2) mit der eingebetteten Bibliothek
-[open-meteo-solar-forecast](https://github.com/rany2/open-meteo-solar-forecast).
-Alle Funktionen des Originals bleiben erhalten, dazu kommen:
+PV-Ertragsprognose für Home Assistant auf Basis von Open-Meteo – mit
+lückentoleranter Berechnung und selbstlernendem Wirkungsgrad.
 
 ## Was ist neu?
 
@@ -80,9 +77,8 @@ pip install pytest-homeassistant-custom-component suncalc pytz
 pytest
 ```
 
-## Lizenz und Herkunft
+## Lizenz
 
-Integration: Apache License 2.0 (siehe `LICENSE.md`), © rany2 und Mitwirkende.
-Eingebettete Bibliothek `forecast_lib`: MIT (siehe `forecast_lib/LICENSE`),
-© Klaas Schoute, rany2. Änderungen sind im Code mit „Plus:“ markiert; Details in
-`NOTICE` und `CHANGELOG.md`.
+Apache License 2.0 (siehe `LICENSE.md`); die eingebettete Bibliothek
+`forecast_lib` steht unter der MIT-Lizenz (siehe `forecast_lib/LICENSE`).
+Hinweise zu Herkunft und Änderungen in `NOTICE` und `CHANGELOG.md`.
